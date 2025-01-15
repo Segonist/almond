@@ -1,5 +1,5 @@
 from discord import Intents, Embed, Color, Member, Object
-from discord.ext.commands import Bot, Context
+from discord.ext.commands import Bot, Context, has_permissions, CheckFailure, CommandError, MissingPermissions
 
 import database
 from database import Response
@@ -10,12 +10,40 @@ config = dotenv_values(".env")
 
 PREFIX = config["PREFIX"]
 TOKEN = config["TOKEN"]
-
+ALLOWED_GUILD = Object(id=config["ALLOWED_GUILD"])
 
 intents = Intents.default()
 intents.message_content = True
 
 bot = Bot(command_prefix=PREFIX, intents=intents)
+
+
+@bot.check
+async def allowed_guild(context: Context):
+    return context.guild.id == ALLOWED_GUILD.id
+
+
+@bot.event
+async def on_command_error(context: Context, error: CommandError):
+    embed = Embed()
+    if isinstance(error, CheckFailure):
+        print(
+            error, f"\nGuild {context.guild.name} ID: {context.guild.id}, owner's ID {context.guild.owner_id}")
+        embed.color = Color.brand_red()
+        embed.title = "Помилка"
+        embed.description = f"Цей бот працює лише на визначеному сервері. Якщо ви хочете використати його на своєму сервері, сконтактуйтесь з [@Segonist](https://discord.com/users/491260818139119626)"
+        await context.send(embed=embed)
+    elif isinstance(error, MissingPermissions):
+        embed.color = Color.brand_red()
+        embed.title = "Помилка"
+        embed.description = f"Цю команду може використовувати виключно адміністрація серверу."
+        await context.send(embed=embed)
+    else:
+        embed.color = Color.brand_red()
+        embed.title = "Помилка"
+        embed.description = f"Яка? Хз. Скоріш за все щось що я не передбачив."
+        await context.send(embed=embed)
+        print(f"Unhandled error: {error}")
 
 
 @bot.event
@@ -25,6 +53,7 @@ async def on_ready():
 
 
 @bot.command()
+@has_permissions(administrator=True)
 async def add_game_mode(context: Context, name: str):
     result = database.add_game_mode(name)
     embed = Embed()
@@ -40,6 +69,7 @@ async def add_game_mode(context: Context, name: str):
 
 
 @bot.command()
+@has_permissions(administrator=True)
 async def edit_game_mode(context: Context, old_name: str, new_name: str):
     result = database.edit_game_mode(old_name, new_name)
     embed = Embed()
@@ -60,6 +90,7 @@ async def edit_game_mode(context: Context, old_name: str, new_name: str):
 
 
 @bot.command()
+@has_permissions(administrator=True)
 async def add_victory(context: Context, user: Member, game_mode: str):
     result = database.add_victory(user.id, game_mode)
     embed = Embed()

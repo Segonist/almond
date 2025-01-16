@@ -2,7 +2,7 @@ from discord import Embed, Color, Interaction
 from discord.app_commands import rename, describe, command, choices, Choice, autocomplete
 from discord.ext.commands import Bot, Cog
 
-from utils import game_mode_autocomplete
+from utils import mode_autocomplete
 
 import database
 from database import Response
@@ -28,21 +28,21 @@ class Leaderboard(Cog):
             return "перемог"
 
     @command(description="Показує таблицю лідерів")
-    @rename(game_mode="режим", changable="оновлюване")
+    @rename(mode="режим", changable="оновлюване")
     @describe(changable="Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
-              game_mode="Режим гри з якого показати таблицю лідерів")
+              mode="Режим гри з якого показати таблицю лідерів")
     @choices(changable=[
         Choice(name="так", value=1),
         Choice(name="ні", value=0),
     ])
-    @autocomplete(game_mode=game_mode_autocomplete)
-    async def show_leaderboard(self, interaction: Interaction, game_mode: str | None = None, changable: Choice[int] = 0):
+    @autocomplete(mode=mode_autocomplete)
+    async def show_leaderboard(self, interaction: Interaction, mode: str | None = None, changable: Choice[int] = 0):
         embed = Embed()
-        responce = database.get_leaderboard(game_mode)
+        responce = database.get_leaderboard(mode)
         if responce == Response.DOES_NOT_EXIST:
             embed.color = Color.brand_red()
             embed.title = "Помилка"
-            embed.description = f"Режиму з назвою **{game_mode}** не існує."
+            embed.description = f"Режиму з назвою **{mode}** не існує."
             await interaction.response.send_message(embed=embed)
             return
 
@@ -54,8 +54,8 @@ class Leaderboard(Cog):
                 wins}** {self.win_form(wins)}\n"
 
         embed.color = Color.blurple()
-        if game_mode:
-            embed.title = f"🏆 Таблиця лідерів режиму {game_mode} 🏆"
+        if mode:
+            embed.title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
         else:
             embed.title = "🏆 Загальна таблиця лідерів 🏆"
         embed.description = message if message else "Дані відсутні."

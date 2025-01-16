@@ -1,9 +1,9 @@
 from discord import Intents, Embed, Color, Object
-from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, is_owner
+from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions
 
 from dotenv import dotenv_values
 
-from cogs.game_modes import Game_modes
+from cogs.modes import Modes
 from cogs.victories import Victories
 from cogs.leaderboard import Leaderboard
 
@@ -22,7 +22,7 @@ class Almond(Bot):
         super().__init__(command_prefix=command_prefix, intents=intents)
 
     async def setup_hook(self):
-        await self.add_cog(Game_modes(self))
+        await self.add_cog(Modes(self))
         await self.add_cog(Victories(self))
         await self.add_cog(Leaderboard(self))
         self.tree.copy_global_to(guild=ALLOWED_GUILD)
@@ -55,7 +55,7 @@ async def on_command_error(context: Context, error: CommandError):
     else:
         embed.color = Color.brand_red()
         embed.title = "Помилка"
-        embed.description = f"Яка? Хз. Скоріш за все щось що я не передбачив."
+        embed.description = f"Щось пішло не так."
         await context.send(embed=embed)
         print(f"Unhandled error: {error}")
 

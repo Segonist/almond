@@ -1,8 +1,8 @@
-from discord import Embed, Color, Member, Interaction
+from discord import Member, Interaction
 from discord.app_commands import rename, describe, command, autocomplete
 from discord.ext.commands import Bot, Cog, has_permissions
 
-from utils import mode_autocomplete
+from utils import mode_autocomplete, embed_generator
 
 import database
 from database import Response
@@ -19,14 +19,17 @@ class Victories(Cog):
     @autocomplete(mode=mode_autocomplete)
     async def add_victory(self, interaction: Interaction, user: Member, mode: str):
         result = database.add_victory(user.id, mode)
-        embed = Embed()
         if result == Response.SUCCESS:
-            embed.color = Color.brand_green()
-            embed.title = "Успіх"
-            embed.description = f"Додано перемогу гравцю <@{
-                user.id}> у режимі {mode}."
+            embed = embed_generator(
+                "success", f"Додано перемогу гравцю <@{user.id}> у режимі {mode}.")
         else:
-            embed.color = Color.brand_green()
-            embed.title = "Помилка"
-            embed.description = f"Щось пішло не так."
+            embed = embed_generator("error", "Щось пішло не так.")
+        await interaction.response.send_message(embed=embed)
+
+    @has_permissions(administrator=True)
+    @command(description="Видаляє останню додану перемогу")
+    async def remove_last_victory(self, interaction: Interaction):
+        result = database.remove_last_victory()
+        embed = embed_generator(
+            "success", f"Видалено перемогу гравцю <@{result[0]}> у режимі {result[1]}.")
         await interaction.response.send_message(embed=embed)

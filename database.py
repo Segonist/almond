@@ -7,9 +7,9 @@ cursor = connection.cursor()
 
 
 class Response(Enum):
-    DOES_NOT_EXIST = 0
-    ALREADY_EXCISTS = 1
-    SUCCESS = 2
+    DOES_NOT_EXIST = 1
+    ALREADY_EXCISTS = 2
+    SUCCESS = 3
 
 
 def add_mode(name: str):
@@ -72,6 +72,26 @@ def add_victory(user_id: int, mode: str):
     cursor.execute(query, (user_id, mode_id, now, now))
     connection.commit()
     return Response.SUCCESS
+
+
+def remove_last_victory():
+    query = "SELECT MAX(id) FROM victory;"
+    responce = cursor.execute(query)
+    last_id = responce.fetchone()[0]
+
+    query = f"SELECT victory.discord_user_id, mode.name \
+            FROM victory \
+            JOIN mode \
+            ON victory.mode_id = mode.id \
+            WHERE victory.id = {last_id};"
+    responce = cursor.execute(query)
+    result = responce.fetchone()
+
+    query = f"DELETE FROM victory WHERE id = {last_id};"
+    cursor.execute(query)
+    connection.commit()
+
+    return result
 
 
 def get_leaderboard(mode: str | None):

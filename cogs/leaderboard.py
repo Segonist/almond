@@ -1,8 +1,8 @@
-from discord import Embed, Color, Interaction
+from discord import Interaction
 from discord.app_commands import rename, describe, command, choices, Choice, autocomplete
 from discord.ext.commands import Bot, Cog
 
-from utils import mode_autocomplete
+from utils import mode_autocomplete, embed_generator
 
 import database
 from database import Response
@@ -36,27 +36,27 @@ class Leaderboard(Cog):
         Choice(name="ні", value=0),
     ])
     @autocomplete(mode=mode_autocomplete)
-    async def show_leaderboard(self, interaction: Interaction, mode: str | None = None, changable: Choice[int] = 0):
-        embed = Embed()
+    async def leaderboard(self, interaction: Interaction, mode: str | None = None, changable: Choice[int] = 0):
         responce = database.get_leaderboard(mode)
         if responce == Response.DOES_NOT_EXIST:
-            embed.color = Color.brand_red()
-            embed.title = "Помилка"
-            embed.description = f"Режиму з назвою **{mode}** не існує."
+            embed = embed_generator(
+                "error", f"Режиму з назвою **{mode}** не існує.")
             await interaction.response.send_message(embed=embed)
             return
 
         message = ""
-        for i, player in enumerate(responce):
-            user_id = player[0]
-            wins = player[1]
-            message += f"{i}. <@{user_id}> - **{
-                wins}** {self.win_form(wins)}\n"
-
-        embed.color = Color.blurple()
-        if mode:
-            embed.title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
+        if not responce:
+            message = "Дані відсутні."
         else:
-            embed.title = "🏆 Загальна таблиця лідерів 🏆"
-        embed.description = message if message else "Дані відсутні."
+            for i, player in enumerate(responce):
+                user_id = player[0]
+                wins = player[1]
+                message += f"{i}. <@{user_id}> - **{
+                    wins}** {self.win_form(wins)}\n"
+
+        if mode:
+            title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
+        else:
+            title = "🏆 Загальна таблиця лідерів 🏆"
+        embed = embed_generator("leaderboard", message, title, interaction)
         await interaction.response.send_message(embed=embed)

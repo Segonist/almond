@@ -1,6 +1,8 @@
 from discord import Embed, Color, Interaction
-from discord.app_commands import rename, describe, command, choices, Choice
+from discord.app_commands import rename, describe, command, choices, Choice, autocomplete
 from discord.ext.commands import Bot, Cog
+
+from utils import game_mode_autocomplete
 
 import database
 
@@ -26,17 +28,19 @@ class Leaderboard(Cog):
 
     @command(description="Показує таблицю лідерів")
     @rename(type="тип", changable="оновлюване")
-    @describe(type="Глобальна - бере під увагу переможців за весь час. (за замовчуванням), Сезонна - бере під увагу тільки переможців з цього сезону",
+    @describe(type="Глобальна - переможці за весь час. (за замовчуванням), Сезонна - переможці з цього сезону, Режим - переможці з вказаного режиму",
               changable="Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчеванням ні)")
     @choices(type=[
-        Choice(name="глобальна", value="global"),
-        Choice(name="сезонна", value="seasonal"),
+        Choice(name="глобальна", value=0),
+        Choice(name="сезонна", value=1),
+        Choice(name="режим", value=2),
     ], changable=[
         Choice(name="так", value=1),
         Choice(name="ні", value=0),
     ])
-    async def show_leaderboard(self, interaction: Interaction, type: Choice[str] = "global", changable: Choice[int] = 0):
-        leaderboard = database.get_leaderboard(type)
+    @autocomplete(game_mode=game_mode_autocomplete)
+    async def show_leaderboard(self, interaction: Interaction, type: Choice[int] = 0, game_mode: str | None = None, changable: Choice[int] = 0):
+        leaderboard = database.get_leaderboard(type, game_mode)
         message = ""
         for i, player in enumerate(leaderboard):
             user_id = player[0]

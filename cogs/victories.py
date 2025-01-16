@@ -1,6 +1,8 @@
 from discord import Embed, Color, Member, Interaction
-from discord.app_commands import rename, describe, command
+from discord.app_commands import rename, describe, command, autocomplete
 from discord.ext.commands import Bot, Cog, has_permissions
+
+from utils import game_mode_autocomplete
 
 import database
 from database import Response
@@ -14,6 +16,7 @@ class Victories(Cog):
     @command(description="Додає перемогу гравцю")
     @rename(user="гравець", game_mode="режим")
     @describe(user="Гравець, якому треба додати перемогу", game_mode="Назва режиму гри")
+    @autocomplete(game_mode=game_mode_autocomplete)
     async def add_victory(self, interaction: Interaction, user: Member, game_mode: str):
         result = database.add_victory(user.id, game_mode)
         embed = Embed()

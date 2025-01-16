@@ -73,7 +73,7 @@ def add_victory(user_id: int, game_mode: str):
     return Response.SUCCESS
 
 
-def get_leaderboard(type: str):
+def get_leaderboard(type: str, game_mode: str | None):
     query = "SELECT discord_user_id, COUNT(discord_user_id) as victories \
             FROM victory \
             GROUP BY discord_user_id \
@@ -81,3 +81,9 @@ def get_leaderboard(type: str):
             DESC LIMIT 10;"
     response = cursor.execute(query)
     return response.fetchall()
+
+
+def get_game_modes():
+    query = "SELECT name FROM game_mode;"
+    responce = cursor.execute(query)
+    return responce.fetchall()

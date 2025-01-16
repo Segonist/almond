@@ -1,6 +1,8 @@
 from discord import Embed, Color, Interaction
-from discord.app_commands import rename, describe, command
+from discord.app_commands import rename, describe, command, autocomplete
 from discord.ext.commands import Bot, Cog, has_permissions
+
+from utils import game_mode_autocomplete
 
 import database
 from database import Response
@@ -31,6 +33,7 @@ class Game_modes(Cog):
     @command(description="Змінює назву режиму гри")
     @rename(old_name="з", new_name="на")
     @describe(old_name="Режим, назву якого треба змінити", new_name="Нова назва режиму")
+    @autocomplete(old_name=game_mode_autocomplete)
     async def edit_game_mode(self, interaction: Interaction, old_name: str, new_name: str):
         result = database.edit_game_mode(old_name, new_name)
         embed = Embed()

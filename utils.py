@@ -1,14 +1,14 @@
 from discord import Interaction, Color, Embed, Interaction
 from discord.app_commands import Choice
 
-import database
+from database import read_modes
 
 
 async def mode_autocomplete(interaction: Interaction, current: str) -> list[Choice[int]]:
-    modes = database.get_modes()
+    modes = read_modes().data
     return [
-        Choice(name=mode[0], value=mode[0])
-        for mode in modes if current.lower() in mode[0].lower()
+        Choice(name=mode, value=mode)
+        for mode in modes if current.lower() in mode.lower()
     ]
 
 

@@ -4,8 +4,7 @@ from discord.ext.commands import Bot, Cog, has_permissions
 
 from utils import mode_autocomplete, embed_generator
 
-import database
-from database import Response
+from database import create_victory, delete_last_victory, Code
 
 
 class Victories(Cog):
@@ -17,9 +16,9 @@ class Victories(Cog):
     @rename(user="гравець", mode="режим")
     @describe(user="Гравець, якому треба додати перемогу", mode="Назва режиму гри")
     @autocomplete(mode=mode_autocomplete)
-    async def add_victory(self, interaction: Interaction, user: Member, mode: str):
-        result = database.add_victory(user.id, mode)
-        if result == Response.SUCCESS:
+    async def victory(self, interaction: Interaction, user: Member, mode: str):
+        responce = create_victory(user.id, mode)
+        if responce.code == Code.SUCCESS:
             embed = embed_generator(
                 "success", f"Додано перемогу гравцю <@{user.id}> у режимі {mode}.")
         else:
@@ -29,7 +28,7 @@ class Victories(Cog):
     @has_permissions(administrator=True)
     @command(description="Видаляє останню додану перемогу")
     async def remove_last_victory(self, interaction: Interaction):
-        result = database.remove_last_victory()
+        responce_data = delete_last_victory().data
         embed = embed_generator(
-            "success", f"Видалено перемогу гравцю <@{result[0]}> у режимі {result[1]}.")
+            "success", f"Видалено перемогу гравцю <@{responce_data['discord_user_id']}> у режимі {responce_data['name']}.")
         await interaction.response.send_message(embed=embed)

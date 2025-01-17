@@ -4,8 +4,7 @@ from discord.ext.commands import Bot, Cog
 
 from utils import mode_autocomplete, embed_generator
 
-import database
-from database import Response
+from database import read_leaderboard, Code
 
 
 class Leaderboard(Cog):
@@ -13,7 +12,7 @@ class Leaderboard(Cog):
         self.bot = bot
 
     @staticmethod
-    def win_form(number):
+    def victory_form(number):
         number = int(str(number)[-2:])
         if number >= 11 and number <= 19:
             return "перемог"
@@ -37,8 +36,8 @@ class Leaderboard(Cog):
     ])
     @autocomplete(mode=mode_autocomplete)
     async def leaderboard(self, interaction: Interaction, mode: str | None = None, changable: Choice[int] = 0):
-        responce = database.get_leaderboard(mode)
-        if responce == Response.DOES_NOT_EXIST:
+        responce = read_leaderboard(mode)
+        if responce.code == Code.DOES_NOT_EXIST:
             embed = embed_generator(
                 "error", f"Режиму з назвою **{mode}** не існує.")
             await interaction.response.send_message(embed=embed)
@@ -48,11 +47,11 @@ class Leaderboard(Cog):
         if not responce:
             message = "Дані відсутні."
         else:
-            for i, player in enumerate(responce):
-                user_id = player[0]
-                wins = player[1]
+            for i, player in enumerate(responce.data, 1):
+                user_id = player["discord_user_id"]
+                victories = player["victories"]
                 message += f"{i}. <@{user_id}> - **{
-                    wins}** {self.win_form(wins)}\n"
+                    victories}** {self.victory_form(victories)}\n"
 
         if mode:
             title = f"🏆 Таблиця лідерів режиму {mode} 🏆"

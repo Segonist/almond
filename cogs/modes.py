@@ -17,7 +17,8 @@ class Modes(Cog):
     @describe(old_mode_name="Режим, назву якого треба змінити", new_mode_name="Нова назва режиму")
     @autocomplete(old_mode_name=mode_autocomplete)
     async def rename_game_mode(self, interaction: Interaction, old_mode_name: str, new_mode_name: str):
-        responce = update_mode(old_mode_name, new_mode_name)
+        responce = update_mode(interaction.guild.id,
+                               old_mode_name, new_mode_name)
         if responce.code == Code.ALREADY_EXISTS:
             embed = embed_generator(
                 "error", f"Режим з назвою **{new_mode_name}** вже існує.")

@@ -36,7 +36,7 @@ class Leaderboard(Cog):
     ])
     @autocomplete(mode=mode_autocomplete)
     async def leaderboard(self, interaction: Interaction, mode: str | None = None, updatable: Choice[int] = 0):
-        responce = read_leaderboard(mode)
+        responce = read_leaderboard(interaction.guild.id, mode)
         if responce.code == Code.DOES_NOT_EXIST:
             embed = embed_generator(
                 "error", f"Режиму з назвою **{mode}** не існує.")

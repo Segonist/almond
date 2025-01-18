@@ -13,7 +13,8 @@ config = dotenv_values(".env")
 
 PREFIX = config["PREFIX"]
 TOKEN = config["TOKEN"]
-ALLOWED_GUILD = Object(id=config["ALLOWED_GUILD"])
+ALLOWED_GUILDS = [Object(id=guild)
+                  for guild in config["ALLOWED_GUILDS"].split(",")]
 
 intents = Intents.default()
 intents.message_content = True
@@ -27,8 +28,9 @@ class Almond(Bot):
         await self.add_cog(Modes(self))
         await self.add_cog(Victories(self))
         await self.add_cog(Leaderboard(self))
-        self.tree.copy_global_to(guild=ALLOWED_GUILD)
-        await self.tree.sync(guild=ALLOWED_GUILD)
+        for guild in ALLOWED_GUILDS:
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
 
 
 bot = Almond(command_prefix=PREFIX, intents=intents)
@@ -37,7 +39,10 @@ bot = Almond(command_prefix=PREFIX, intents=intents)
 # global check that allows bot to work only on specified server
 @bot.check
 async def allowed_guild(context: Context):
-    return context.guild.id == ALLOWED_GUILD.id
+    for guild in ALLOWED_GUILDS:
+        if context.guild.id == guild.id:
+            return True
+    return False
 
 
 @bot.event

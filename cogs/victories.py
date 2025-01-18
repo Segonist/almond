@@ -17,7 +17,7 @@ class Victories(Cog):
     @describe(user="Гравець, якому треба додати перемогу", mode="Назва режиму гри")
     @autocomplete(mode=mode_autocomplete)
     async def victory(self, interaction: Interaction, user: Member, mode: str):
-        responce = create_victory(user.id, mode)
+        responce = create_victory(interaction.guild.id, user.id, mode)
         if responce.code == Code.SUCCESS:
             embed = embed_generator(
                 "success", f"Додано перемогу гравцю <@{user.id}> у режимі {mode}.")
@@ -28,7 +28,7 @@ class Victories(Cog):
     @has_permissions(administrator=True)
     @command(description="Видаляє останню додану перемогу")
     async def remove_last_victory(self, interaction: Interaction):
-        responce_data = delete_last_victory().data
+        responce_data = delete_last_victory(interaction.guild.id).data
         embed = embed_generator(
             "success", f"Видалено перемогу гравцю <@{responce_data['discord_user_id']}> у режимі {responce_data['name']}.")
         await interaction.response.send_message(embed=embed)

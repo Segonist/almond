@@ -1,12 +1,24 @@
 from discord import Interaction, Color, Embed, Interaction
 from discord.app_commands import Choice
 
+from time import time
+
 from database import read_modes
+
+mode_cache = {}
 
 
 async def mode_autocomplete(interaction: Interaction, current: str) -> list[Choice[int]]:
-    # reads modes from database, then compares them with current input. If there is some sort of match, it returns it
-    modes = read_modes().data
+    guild_id = interaction.guild.id
+    now = time()
+
+    # 10 seconds just so it won't make db request every time user types
+    if guild_id in mode_cache and now - mode_cache[guild_id]['timestamp'] < 10:
+        modes = mode_cache[guild_id]['data']
+    else:
+        modes = read_modes(guild_id).data
+        mode_cache[guild_id] = {'data': modes, 'timestamp': now}
+
     return [
         Choice(name=mode, value=mode)
         for mode in modes if current.lower() in mode.lower()

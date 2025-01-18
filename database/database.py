@@ -20,7 +20,7 @@ class Response:
         self.data = data
 
 
-def create_mode(name: str):
+def create_mode(name: str) -> Response:
     # my implementation of case-insentivity
     name = name.lower()
 
@@ -37,7 +37,7 @@ def create_mode(name: str):
     return Response(Code.SUCCESS, {"mode_id": cursor.lastrowid})
 
 
-def update_mode(old_name: str, new_name: str):
+def update_mode(old_name: str, new_name: str) -> Response:
     old_name = old_name.lower()
     new_name = new_name.lower()
 
@@ -63,7 +63,7 @@ def update_mode(old_name: str, new_name: str):
     return Response(Code.SUCCESS)
 
 
-def create_victory(user_id: int, mode: str):
+def create_victory(user_id: int, mode: str) -> Response:
     mode = mode.lower()
 
     # check if there is such mode in database
@@ -82,7 +82,8 @@ def create_victory(user_id: int, mode: str):
     return Response(Code.SUCCESS)
 
 
-def delete_last_victory():
+def delete_last_victory() -> Response:
+    # get last victory id
     query = "SELECT MAX(id) FROM victory;"
     responce = cursor.execute(query)
     last_id = responce.fetchone()[0]
@@ -102,8 +103,9 @@ def delete_last_victory():
     return Response(Code.SUCCESS, result)
 
 
-def read_leaderboard(mode: str = None):
+def read_leaderboard(mode: str = None) -> Response:
     if mode:
+        # check if there is such mode in database
         query = "SELECT id FROM mode WHERE name = ?"
         response = cursor.execute(query, (mode,))
         result = response.fetchone()
@@ -127,12 +129,8 @@ def read_leaderboard(mode: str = None):
     return Response(Code.SUCCESS, response.fetchall())
 
 
-def read_modes():
+def read_modes() -> Response:
     query = "SELECT name FROM mode;"
     responce = cursor.execute(query)
     data = [row["name"] for row in responce.fetchall()]
     return Response(Code.SUCCESS, data)
-
-
-if __name__ == "__main__":
-    print(read_leaderboard().data)

@@ -1,15 +1,17 @@
 CREATE TABLE mode (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE,
-    created_at INTEGER,
-    updated_at INTEGER
+    name TEXT UNIQUE NOT NULL,
+    guild_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
 );
 
 CREATE TABLE victory (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    discord_user_id INTEGER,
-    mode_id INTEGER,
-    created_at INTEGER,
-    updated_at INTEGER,
+    discord_user_id INTEGER NOT NULL,
+    mode_id INTEGER NOT NULL,
+    guild_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
     FOREIGN KEY (mode_id) REFERENCES mode (id)
 );

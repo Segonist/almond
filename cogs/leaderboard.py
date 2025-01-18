@@ -27,15 +27,15 @@ class Leaderboard(Cog):
             return "перемог"
 
     @command(description="Показує таблицю лідерів")
-    @rename(mode="режим", changable="оновлюване")
-    @describe(changable="Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
+    @rename(mode="режим", updatable="оновлюване")
+    @describe(updatable="Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
               mode="Режим гри з якого показати таблицю лідерів")
-    @choices(changable=[
+    @choices(updatable=[
         Choice(name="так", value=1),
         Choice(name="ні", value=0),
     ])
     @autocomplete(mode=mode_autocomplete)
-    async def leaderboard(self, interaction: Interaction, mode: str | None = None, changable: Choice[int] = 0):
+    async def leaderboard(self, interaction: Interaction, mode: str | None = None, updatable: Choice[int] = 0):
         responce = read_leaderboard(mode)
         if responce.code == Code.DOES_NOT_EXIST:
             embed = embed_generator(

@@ -26,6 +26,31 @@ class Leaderboard(Cog):
         elif number >= 5 and number <= 9:
             return "перемог"
 
+    @staticmethod
+    def generate_leaderboard(interaction: Interaction, mode: str = None):
+        responce = read_leaderboard(interaction.guild.id, mode)
+        if responce.code == Code.DOES_NOT_EXIST:
+            embed = embed_generator(
+                "error", f"Режиму з назвою **{mode}** не існує.")
+            return embed
+
+        message = ""
+        if not responce:
+            message = "Дані відсутні."
+        else:
+            for i, player in enumerate(responce.data, 1):
+                user_id = player["discord_user_id"]
+                victories = player["victories"]
+                message += f"{i}. <@{user_id}> - **{
+                    victories}** {Leaderboard.victory_form(victories)}\n"
+
+        if mode:
+            title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
+        else:
+            title = "🏆 Загальна таблиця лідерів 🏆"
+        embed = embed_generator("leaderboard", message, title, interaction)
+        return embed
+
     @command(description="Показує таблицю лідерів")
     @rename(mode="режим", updatable="оновлюване")
     @describe(updatable="Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
@@ -36,29 +61,9 @@ class Leaderboard(Cog):
     ])
     @autocomplete(mode=mode_autocomplete)
     async def leaderboard(self, interaction: Interaction, mode: str | None = None, updatable: Choice[int] = 0):
-        responce = read_leaderboard(interaction.guild.id, mode)
-        if responce.code == Code.DOES_NOT_EXIST:
-            embed = embed_generator(
-                "error", f"Режиму з назвою **{mode}** не існує.")
-            await interaction.response.send_message(embed=embed)
-            return
-
-        message = ""
-        if not responce:
-            message = "Дані відсутні."
-        else:
-            for i, player in enumerate(responce.data, 1):
-                user_id = player["discord_user_id"]
-                victories = player["victories"]
-                message += f"{i}. <@{user_id}> - **{
-                    victories}** {self.victory_form(victories)}\n"
-
-        if mode:
-            title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
-        else:
-            title = "🏆 Загальна таблиця лідерів 🏆"
-        embed = embed_generator("leaderboard", message, title, interaction)
-        message = await interaction.response.send_message(embed=embed)
+        embed = self.generate_leaderboard(interaction, mode)
+        await interaction.response.send_message(embed=embed)
+        message = await interaction.original_response()
         if updatable:
             guild_id = interaction.guild.id
             channel_id = interaction.channel.id

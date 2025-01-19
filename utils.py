@@ -31,6 +31,9 @@ def embed_generator(type: str, description: str, title: str | None = None, inter
         case "error":
             embed.color = Color.brand_red()
             embed.title = "Помилка"
+        case "warning":
+            embed.color = Color.yellow()
+            embed.title = "Увага"
         case "success":
             embed.color = Color.brand_green()
             embed.title = "Успіх"

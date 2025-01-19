@@ -17,7 +17,6 @@ ALLOWED_GUILDS = [Object(id=guild)
                   for guild in config["ALLOWED_GUILDS"].split(",")]
 
 intents = Intents.default()
-intents.message_content = True
 
 
 class Almond(Bot):
@@ -38,7 +37,7 @@ bot = Almond(command_prefix=PREFIX, intents=intents)
 
 # global check that allows bot to work only on specified server
 @bot.check
-async def allowed_guild(context: Context):
+async def allowed_guilds(context: Context):
     for guild in ALLOWED_GUILDS:
         if context.guild.id == guild.id:
             return True

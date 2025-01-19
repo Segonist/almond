@@ -140,6 +140,7 @@ def read_leaderboard(guild_id: int, mode: str = None) -> Response:
 
 
 def create_updatable_message(guild_id: int, channel_id: int, message_id: int, mode: str = None) -> Response:
+    now = int(time())
     if mode:
         # check if there is such mode in database
         responce = read_mode_id(guild_id, mode)
@@ -147,21 +148,26 @@ def create_updatable_message(guild_id: int, channel_id: int, message_id: int, mo
             return Response(Code.DOES_NOT_EXIST)
 
         mode_id = responce.data["id"]
-        query = "INSERT INTO updatable_message (channel_id, message_id, mode_id, guild_id) VALUES (?, ?, ?, ?);"
-        cursor.execute(query, (channel_id, message_id, mode_id, guild_id,))
+        query = "INSERT INTO updatable_message (channel_id, message_id, mode_id, guild_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);"
+        cursor.execute(query, (channel_id, message_id,
+                       mode_id, guild_id, now, now))
         connection.commit()
         return Response(Code.SUCCESS)
 
-    query = "INSERT INTO updatable_message (channel_id, message_id, guild_id) VALUES (?, ?, ?);"
-    cursor.execute(query, (channel_id, message_id, guild_id,))
+    query = "INSERT INTO updatable_message (channel_id, message_id, guild_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?);"
+    cursor.execute(query, (channel_id, message_id, guild_id, now, now))
     connection.commit()
     return Response(Code.SUCCESS)
 
 
 def read_updatable_messages(guild_id: int) -> Response:
-    query = "SELECT channel_id, message_id, mode_id FROM updatable_message WHERE guild_id = ?;"
+    query = "SELECT updatable_message.channel_id, updatable_message.message_id, mode.name \
+            FROM updatable_message \
+            FULL JOIN mode ON updatable_message.mode_id = mode.id \
+            WHERE updatable_message.guild_id = ?;"
     response = cursor.execute(query, (guild_id,))
-    return Response(Code.SUCCESS, dict(response.fetchall()))
+    data = [dict(row) for row in response.fetchall()]
+    return Response(Code.SUCCESS, data)
 
 
 def delete_updatable_message(guild_id: int, channel_id: int, message_id: int) -> Response:
@@ -169,3 +175,7 @@ def delete_updatable_message(guild_id: int, channel_id: int, message_id: int) ->
     cursor.execute(query, (channel_id, message_id, guild_id,))
     connection.commit()
     return Response(Code.SUCCESS)
+
+
+if __name__ == "__main__":
+    print(read_updatable_messages(875442058297495603).data)

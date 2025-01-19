@@ -30,15 +30,18 @@ class Modes(Cog):
                 "success", f"Успішно змінено назву режиму **{old_mode_name}** на **{new_mode_name}**.")
         await interaction.response.send_message(embed=embed)
 
+        new_mode_name = new_mode_name.lower()
         responce = read_updatable_messages(guild.id)
         if responce.code == Code.SUCCESS:
             for message in responce.data:
-                if message["mode"] == old_mode_name:
+                if message["name"] == new_mode_name:
                     message_id = message["message_id"]
                     channel_id = message["channel_id"]
                     channel = guild.get_channel(channel_id)
                     msg = await channel.fetch_message(message_id)
                     embed = msg.embeds[0].to_dict()
+                    new_title = embed["title"].replace(
+                        old_mode_name, new_mode_name)
                     new_embed = embed_generator(
-                        "leaderboard", embed["description"], new_mode_name, interaction)
+                        "leaderboard", embed["description"], new_title, interaction)
                     await msg.edit(embed=new_embed)

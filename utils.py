@@ -20,8 +20,8 @@ async def mode_autocomplete(interaction: Interaction, current: str) -> list[Choi
         mode_cache[guild_id] = {'data': modes, 'timestamp': now}
 
     return [
-        Choice(name=mode, value=mode)
-        for mode in modes if current.lower() in mode.lower()
+        Choice(name=mode["name"], value=mode["name"])
+        for mode in modes if current.lower() in mode["name"].lower()
     ]
 
 

@@ -4,7 +4,7 @@ from discord.ext.commands import Bot, Cog
 
 from utils import mode_autocomplete, embed_generator
 
-from database import read_leaderboard, Code
+from database import read_leaderboard, create_updatable_message, Code
 
 
 class Leaderboard(Cog):
@@ -58,4 +58,14 @@ class Leaderboard(Cog):
         else:
             title = "🏆 Загальна таблиця лідерів 🏆"
         embed = embed_generator("leaderboard", message, title, interaction)
-        await interaction.response.send_message(embed=embed)
+        message = await interaction.response.send_message(embed=embed)
+        if updatable:
+            guild_id = interaction.guild.id
+            channel_id = interaction.channel.id
+            message_id = message.id
+            responce = create_updatable_message(
+                guild_id, channel_id, message_id, mode)
+            if responce.code is not Code.SUCCESS:
+                embed = embed_generator(
+                    "error", "Не вдалося створити оновлюване повідомлення.")
+                await interaction.response.send_message(embed=embed)

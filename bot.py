@@ -66,11 +66,4 @@ async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
 
-
-@bot.command()
-async def message(context: Context):
-    msg = await context.guild.get_channel(
-        1325500572249362463).fetch_message(1329929401462296700)
-    await msg.edit(content="Hello!")
-
 bot.run(TOKEN)

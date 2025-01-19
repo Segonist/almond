@@ -133,8 +133,10 @@ def read_leaderboard(guild_id: int, mode: str = None) -> Response:
                 ORDER BY victories \
                 DESC LIMIT 10;"
     response = cursor.execute(query, (guild_id,))
+    result = response.fetchall()
+    data = [dict(row) for row in result]
 
-    return Response(Code.SUCCESS, dict(response.fetchall()))
+    return Response(Code.SUCCESS, data)
 
 
 def create_updatable_message(guild_id: int, channel_id: int, message_id: int, mode: str = None) -> Response:

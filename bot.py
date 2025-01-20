@@ -84,7 +84,7 @@ class Almond(Bot):
             # if user.bot:
             #     continue
             if user.id not in users_ids_with_roles:
-                new_role = await guild.create_role()
+                new_role = await guild.create_role(name="0 перемог", color=Color.teal())
                 await user.add_roles(new_role)
                 create_role(guild.id, new_role.id, user.id)
 
@@ -108,6 +108,10 @@ class Almond(Bot):
     async def on_member_join(self, member: Member):
         await self.create_roles(member.guild)
         await self.make_roles_names(member.guild)
+
+    async def on_guild_join(self, guild: Guild):
+        await self.create_roles(guild)
+        await self.make_roles_names(guild)
 
     async def setup_hook(self):
         await bot.load_extension("cogs.leaderboard")

@@ -43,7 +43,7 @@ def read_mode_id(guild_id: int, name: str) -> Response:
     query = "SELECT id FROM mode WHERE name = ? AND guild_id = ?;"
     response = cursor.execute(query, (name, guild_id,))
     result = response.fetchone()
-    if result is None:
+    if not result:
         return Response(Code.DOES_NOT_EXIST)
     return Response(Code.SUCCESS, dict(result))
 
@@ -83,7 +83,7 @@ def create_victory(guild_id: int, user_id: int, mode: str) -> Response:
         mode_id = responce.data["id"]
 
     now = int(time())
-    query = "INSERT INTO victory (discord_user_id, mode_id, guild_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?);"
+    query = "INSERT INTO victory (user_id, mode_id, guild_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?);"
     cursor.execute(query, (user_id, mode_id, guild_id, now, now,))
     connection.commit()
     return Response(Code.SUCCESS)
@@ -91,11 +91,12 @@ def create_victory(guild_id: int, user_id: int, mode: str) -> Response:
 
 def delete_last_victory(guild_id: int) -> Response:
     # get last victory id
-    query = "SELECT MAX(id) FROM victory WHERE guild_id = ?;"
+    query = "SELECT MAX(id) as id FROM victory WHERE guild_id = ?;"
     responce = cursor.execute(query, (guild_id,))
-    last_id = responce.fetchone()[0]
+    result = responce.fetchone()
+    last_id = result["id"]
 
-    query = f"SELECT victory.discord_user_id, mode.name \
+    query = f"SELECT victory.user_id, mode.name \
             FROM victory \
             JOIN mode \
             ON victory.mode_id = mode.id \
@@ -118,18 +119,18 @@ def read_leaderboard(guild_id: int, mode: str = None) -> Response:
         if responce.code is Code.DOES_NOT_EXIST:
             return Response(Code.DOES_NOT_EXIST)
 
-        query = f"SELECT discord_user_id, COUNT(discord_user_id) as victories \
+        query = f"SELECT user_id, COUNT(user_id) as victories \
                 FROM victory \
                 WHERE mode_id = {responce.data['id']} \
                 AND guild_id = ? \
-                GROUP BY discord_user_id \
+                GROUP BY user_id \
                 ORDER BY victories \
                 DESC LIMIT 10;"
     else:
-        query = "SELECT discord_user_id, COUNT(discord_user_id) as victories \
+        query = "SELECT user_id, COUNT(user_id) as victories \
                 FROM victory \
                 WHERE guild_id = ? \
-                GROUP BY discord_user_id \
+                GROUP BY user_id \
                 ORDER BY victories \
                 DESC LIMIT 10;"
     response = cursor.execute(query, (guild_id,))
@@ -177,5 +178,38 @@ def delete_updatable_message(guild_id: int, channel_id: int, message_id: int) ->
     return Response(Code.SUCCESS)
 
 
-if __name__ == "__main__":
-    print(read_updatable_messages(875442058297495603).data)
+def create_role(guild_id: int, role_id: int, user_id: int) -> Response:
+    now = int(time())
+    query = "INSERT INTO role (role_id, user_id, guild_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?);"
+    cursor.execute(query, (role_id, user_id, guild_id, now, now))
+    connection.commit()
+    return Response(Code.SUCCESS)
+
+
+def read_role(guild_id: int, user_id: int) -> Response:
+    query = "SELECT role_id FROM role WHERE user_id = ? AND guild_id = ?;"
+    response = cursor.execute(query, (user_id, guild_id,))
+    result = response.fetchone()
+    if not result:
+        return Response(Code.DOES_NOT_EXIST)
+    data = [dict(row) for row in result]
+    return Response(Code.SUCCESS, data)
+
+
+def read_roles(guild_id: int) -> Response:
+    query = "SELECT role_id, user_id FROM role WHERE guild_id = ?;"
+    response = cursor.execute(query, (guild_id,))
+    data = [dict(row) for row in response.fetchall()]
+    return Response(Code.SUCCESS, data)
+
+
+def read_data_for_roles(guild_id: int) -> Response:
+    query = "SELECT victory.user_id, COUNT(victory.user_id) as victories, role.role_id \
+            FROM victory \
+            JOIN role ON victory.user_id = role.user_id \
+            WHERE victory.guild_id = ? \
+            GROUP BY victory.user_id \
+            ORDER BY victories DESC;"
+    response = cursor.execute(query, (guild_id,))
+    data = [dict(row) for row in response.fetchall()]
+    return Response(Code.SUCCESS, data)

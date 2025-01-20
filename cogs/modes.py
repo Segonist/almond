@@ -45,3 +45,7 @@ class Modes(Cog):
                     new_embed = embed_generator(
                         "leaderboard", embed["description"], new_title, interaction)
                     await msg.edit(embed=new_embed)
+
+
+async def setup(bot: Bot):
+    await bot.add_cog(Modes(bot))

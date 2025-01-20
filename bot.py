@@ -1,15 +1,13 @@
-from discord import Intents, Object, Interaction
-from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check
+from discord import Intents, Object, Interaction, Color, Member, Guild
+from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check, is_owner
 
 from dotenv import dotenv_values
 
 import logging
 
-from cogs.modes import Modes
-from cogs.victories import Victories
-from cogs.leaderboard import Leaderboard
+from utils import embed_generator, victory_form
 
-from utils import embed_generator
+from database import create_role, read_roles, read_data_for_roles
 
 config = dotenv_values(".env")
 
@@ -19,6 +17,7 @@ ALLOWED_GUILDS = [Object(id=guild)
                   for guild in config["ALLOWED_GUILDS"].split(",")]
 
 intents = Intents.default()
+intents.members = True
 
 
 class LoggingFormatter(logging.Formatter):
@@ -77,10 +76,44 @@ class Almond(Bot):
 
         self.logger = logger
 
+    async def create_roles(self, guild: Guild):
+        # checks for users without roles and creates them
+        roles = read_roles(guild.id)
+        users_ids_with_roles = [role["user_id"] for role in roles.data]
+        async for user in guild.fetch_members():
+            # if user.bot:
+            #     continue
+            if user.id not in users_ids_with_roles:
+                new_role = await guild.create_role()
+                await user.add_roles(new_role)
+                create_role(guild.id, new_role.id, user.id)
+
+    async def make_roles_names(self, guild: Guild):
+        icons = {1: "🥇", 2: "🥈", 3: "🥉"}
+        colors = {1: Color.gold(), 2: Color.greyple(),
+                  3: Color.dark_orange()}
+        result = read_data_for_roles(guild.id)
+        leaderboard = result.data
+        for i, user in enumerate(leaderboard, 1):
+            role = guild.get_role(user["role_id"])
+            name = f"{user["victories"]} {victory_form(user["victories"])}"
+            if guild.premium_tier >= 2:
+                icon = icons.get(i, "")
+            else:
+                icon = None
+            color = colors.get(i, Color.teal())
+            if role:
+                await role.edit(name=name, display_icon=icon, color=color)
+
+    async def on_member_join(self, member: Member):
+        await self.create_roles(member.guild)
+        await self.make_roles_names(member.guild)
+
     async def setup_hook(self):
-        await self.add_cog(Modes(self))
-        await self.add_cog(Victories(self))
-        await self.add_cog(Leaderboard(self))
+        await bot.load_extension("cogs.leaderboard")
+        await bot.load_extension("cogs.modes")
+        await bot.load_extension("cogs.victories")
+
         for guild in ALLOWED_GUILDS:
             self.tree.copy_global_to(guild=guild)
             await self.tree.sync(guild=guild)
@@ -88,6 +121,10 @@ class Almond(Bot):
     async def on_ready(self):
         self.logger.info(f"Бот увійшов за {self.user.name} ID: {self.user.id}")
         self.logger.info("-------------------")
+
+        for guild in self.guilds:
+            await self.create_roles(guild)
+            await self.make_roles_names(guild)
 
     # global check that allows bot to work only on specified servers
     @check

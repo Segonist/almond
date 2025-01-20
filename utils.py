@@ -3,7 +3,7 @@ from discord.app_commands import Choice
 
 from time import time
 
-from database import read_modes
+from database import read_modes, read_leaderboard, Code
 
 mode_cache = {}
 
@@ -45,4 +45,44 @@ def embed_generator(type: str, description: str, title: str | None = None, inter
                 guild_icon = guild_icon.url
             embed.set_footer(text=guild_name, icon_url=guild_icon)
 
+    return embed
+
+
+def victory_form(number):
+    number = int(str(number)[-2:])
+    if number >= 11 and number <= 19:
+        return "перемог"
+    number = int(str(number)[-1:])
+    if number == 0:
+        return "перемог"
+    elif number == 1:
+        return "перемога"
+    elif number >= 2 and number <= 4:
+        return "перемоги"
+    elif number >= 5 and number <= 9:
+        return "перемог"
+
+
+def generate_leaderboard(interaction: Interaction, mode: str = None):
+    responce = read_leaderboard(interaction.guild.id, mode)
+    if responce.code == Code.DOES_NOT_EXIST:
+        embed = embed_generator(
+            "error", f"Режиму з назвою **{mode}** не існує.")
+        return embed
+
+    message = ""
+    if not responce:
+        message = "Дані відсутні."
+    else:
+        for i, player in enumerate(responce.data, 1):
+            user_id = player["user_id"]
+            victories = player["victories"]
+            message += f"{i}. <@{user_id}> - **{
+                victories}** {victory_form(victories)}\n"
+
+    if mode:
+        title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
+    else:
+        title = "🏆 Загальна таблиця лідерів 🏆"
+    embed = embed_generator("leaderboard", message, title, interaction)
     return embed

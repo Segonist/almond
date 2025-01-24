@@ -28,6 +28,9 @@ async def mode_autocomplete(interaction: Interaction, current: str) -> list[Choi
 def embed_generator(type: str, description: str, title: str | None = None, interaction: Interaction | None = None) -> Embed:
     embed = Embed(description=description, title=title)
     match type:
+        case "help":
+            embed.color = Color.dark_grey()
+            embed.title = "Допомога"
         case "error":
             embed.color = Color.brand_red()
             embed.title = "Помилка"

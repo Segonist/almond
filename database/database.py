@@ -124,15 +124,13 @@ def read_leaderboard(guild_id: int, mode: str = None) -> Response:
                 WHERE mode_id = {responce.data['id']} \
                 AND guild_id = ? \
                 GROUP BY user_id \
-                ORDER BY victories \
-                DESC LIMIT 10;"
+                ORDER BY victories DESC;"
     else:
         query = "SELECT user_id, COUNT(user_id) as victories \
                 FROM victory \
                 WHERE guild_id = ? \
                 GROUP BY user_id \
-                ORDER BY victories \
-                DESC LIMIT 10;"
+                ORDER BY victories DESC;"
     response = cursor.execute(query, (guild_id,))
     result = response.fetchall()
     data = [dict(row) for row in result]

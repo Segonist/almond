@@ -1,5 +1,5 @@
 from discord import Intents, Object, Interaction, Color, Member, Guild
-from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check, is_owner
+from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check
 
 from dotenv import dotenv_values
 
@@ -81,8 +81,8 @@ class Almond(Bot):
         roles = read_roles(guild.id)
         users_ids_with_roles = [role["user_id"] for role in roles.data]
         async for user in guild.fetch_members():
-            # if user.bot:
-            #     continue
+            if user.bot:
+                continue
             if user.id not in users_ids_with_roles:
                 new_role = await guild.create_role(name="0 перемог", color=Color.teal())
                 await user.add_roles(new_role)
@@ -117,6 +117,7 @@ class Almond(Bot):
         await bot.load_extension("cogs.leaderboard")
         await bot.load_extension("cogs.modes")
         await bot.load_extension("cogs.victories")
+        await bot.load_extension("cogs.help")
 
         for guild in ALLOWED_GUILDS:
             self.tree.copy_global_to(guild=guild)
@@ -160,6 +161,5 @@ class Almond(Bot):
 
 
 bot = Almond(command_prefix=PREFIX, intents=intents)
-
 
 bot.run(TOKEN)

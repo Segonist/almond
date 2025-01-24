@@ -4,7 +4,7 @@ from discord.ext.commands import Cog, Bot
 
 from utils import mode_autocomplete, embed_generator, generate_leaderboard
 
-from database import read_leaderboard, create_updatable_message, Code
+from database import create_updatable_message, Code
 
 
 class Leaderboard(Cog):
@@ -13,14 +13,14 @@ class Leaderboard(Cog):
 
     @command(description="Показує таблицю лідерів")
     @rename(mode="режим", updatable="оновлюване")
-    @describe(updatable="Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
-              mode="Режим гри з якого показати таблицю лідерів")
+    @describe(updatable="(опціональний) Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
+              mode="(опціональний) Режим гри з якого показати таблицю лідерів")
     @choices(updatable=[
         Choice(name="так", value=1),
         Choice(name="ні", value=0),
     ])
     @autocomplete(mode=mode_autocomplete)
-    async def leaderboard(self, interaction: Interaction, mode: str | None = None, updatable: Choice[int] = 0):
+    async def leaderboard(self, interaction: Interaction, mode: str = None, updatable: Choice[int] = 0):
         embed = generate_leaderboard(interaction, mode)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()

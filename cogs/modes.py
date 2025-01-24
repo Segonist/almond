@@ -14,7 +14,7 @@ class Modes(Cog):
     @has_permissions(administrator=True)
     @command(description="Змінює назву режиму гри")
     @rename(old_mode_name="з", new_mode_name="на")
-    @describe(old_mode_name="Режим, назву якого треба змінити", new_mode_name="Нова назва режиму")
+    @describe(old_mode_name="Режим, назву якого потрібно змінити", new_mode_name="Нова назва режиму")
     @autocomplete(old_mode_name=mode_autocomplete)
     async def rename_game_mode(self, interaction: Interaction, old_mode_name: str, new_mode_name: str):
         guild = interaction.guild

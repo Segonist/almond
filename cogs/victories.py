@@ -19,6 +19,12 @@ class Victories(Cog):
                 message_id = message["message_id"]
                 channel_id = message["channel_id"]
                 channel = guild.get_channel(channel_id)
+                if channel is None:
+                    delete_updatable_message(guild.id, channel_id, message_id)
+                    embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
+                                            channel_id}>. Вона не буде оновлюватись у майбутньому.")
+                    await interaction.channel.send(embed=embed)
+                    continue
                 try:
                     msg = await channel.fetch_message(message_id)
                 except NotFound:
@@ -45,7 +51,7 @@ class Victories(Cog):
             embed = embed_generator(
                 "success", f"Додано перемогу гравцю <@{user.id}> у режимі **{mode}**.")
             await self.update_message(interaction)
-            await self.bot.make_roles_names(interaction.guild)
+            # await self.bot.make_roles_names(interaction.guild)
         else:
             embed = embed_generator("error", "Щось пішло не так.")
         await interaction.response.send_message(embed=embed)
@@ -59,7 +65,7 @@ class Victories(Cog):
         await interaction.response.send_message(embed=embed)
 
         await self.update_message(interaction)
-        await self.bot.make_roles_names(interaction.guild)
+        # await self.bot.make_roles_names(interaction.guild)
 
 
 async def setup(bot: Bot):

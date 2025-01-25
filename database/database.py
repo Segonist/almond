@@ -2,8 +2,9 @@ import sqlite3
 from time import time
 from enum import Enum
 from typing import Any
+import os
 
-connection = sqlite3.connect("./database/almond.db")
+connection = sqlite3.connect(f"{os.getenv("ROOT_DIR")}/database/almond.db")
 connection.row_factory = sqlite3.Row
 cursor = connection.cursor()
 
@@ -162,7 +163,7 @@ def create_updatable_message(guild_id: int, channel_id: int, message_id: int, mo
 def read_updatable_messages(guild_id: int) -> Response:
     query = "SELECT updatable_message.channel_id, updatable_message.message_id, mode.name \
             FROM updatable_message \
-            FULL JOIN mode ON updatable_message.mode_id = mode.id \
+            LEFT JOIN mode ON updatable_message.mode_id = mode.id \
             WHERE updatable_message.guild_id = ?;"
     response = cursor.execute(query, (guild_id,))
     data = [dict(row) for row in response.fetchall()]

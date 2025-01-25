@@ -1,7 +1,9 @@
+import os
+
 from discord import Intents, Object, Interaction, Color, Member, Guild
 from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check
 
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 
 import logging
 
@@ -9,12 +11,11 @@ from utils import embed_generator, victory_form
 
 from database import create_role, read_roles, read_data_for_roles
 
-config = dotenv_values(".env")
+load_dotenv()
 
-PREFIX = config["PREFIX"]
-TOKEN = config["TOKEN"]
 ALLOWED_GUILDS = [Object(id=guild)
-                  for guild in config["ALLOWED_GUILDS"].split(",")]
+                  for guild in os.getenv("ALLOWED_GUILDS").split(",")]
+
 
 intents = Intents.default()
 intents.members = True
@@ -59,7 +60,7 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(LoggingFormatter())
 # File handler
 file_handler = logging.FileHandler(
-    filename="discord.log", encoding="utf-8", mode="w")
+    filename=f"{os.getenv("ROOT_DIR")}discord.log", encoding="utf-8", mode="w")
 file_handler_formatter = logging.Formatter(
     "[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{"
 )
@@ -77,6 +78,8 @@ class Almond(Bot):
         self.logger = logger
 
     async def create_roles(self, guild: Guild):
+        if guild not in ALLOWED_GUILDS:
+            return
         # checks for users without roles and creates them
         roles = read_roles(guild.id)
         users_ids_with_roles = [role["user_id"] for role in roles.data]
@@ -89,6 +92,8 @@ class Almond(Bot):
                 create_role(guild.id, new_role.id, user.id)
 
     async def make_roles_names(self, guild: Guild):
+        if guild not in ALLOWED_GUILDS:
+            return
         icons = {1: "🥇", 2: "🥈", 3: "🥉"}
         colors = {1: Color.gold(), 2: Color.greyple(),
                   3: Color.dark_orange()}
@@ -106,12 +111,14 @@ class Almond(Bot):
                 await role.edit(name=name, display_icon=icon, color=color)
 
     async def on_member_join(self, member: Member):
-        await self.create_roles(member.guild)
-        await self.make_roles_names(member.guild)
+        pass
+        # await self.create_roles(member.guild)
+        # await self.make_roles_names(member.guild)
 
     async def on_guild_join(self, guild: Guild):
-        await self.create_roles(guild)
-        await self.make_roles_names(guild)
+        pass
+        # await self.create_roles(guild)
+        # await self.make_roles_names(guild)
 
     async def setup_hook(self):
         await bot.load_extension("cogs.leaderboard")
@@ -128,8 +135,9 @@ class Almond(Bot):
         self.logger.info("-------------------")
 
         for guild in self.guilds:
-            await self.create_roles(guild)
-            await self.make_roles_names(guild)
+            pass
+            # await self.create_roles(guild)
+            # await self.make_roles_names(guild)
 
     # global check that allows bot to work only on specified servers
     @check
@@ -160,6 +168,6 @@ class Almond(Bot):
             f"Виконано команду {command} на сервері {interaction.guild.name} #{interaction.guild.id} в каналі {interaction.channel.name} #{interaction.channel.id} користувачем {interaction.user} #{interaction.user.id}")
 
 
-bot = Almond(command_prefix=PREFIX, intents=intents)
+bot = Almond(command_prefix=os.getenv("PREFIX"), intents=intents)
 
-bot.run(TOKEN)
+bot.run(os.getenv("TOKEN"))

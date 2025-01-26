@@ -14,31 +14,35 @@ class Victories(Cog):
     async def update_message(self, interaction: Interaction):
         guild = interaction.guild
         responce = read_updatable_messages(guild.id)
-        if responce.code == Code.SUCCESS:
-            for message in responce.data:
-                message_id = message["message_id"]
-                channel_id = message["channel_id"]
-                channel = guild.get_channel(channel_id)
-                if channel is None:
-                    delete_updatable_message(guild.id, channel_id, message_id)
-                    embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
-                                            channel_id}>. Вона не буде оновлюватись у майбутньому.")
-                    await interaction.channel.send(embed=embed)
-                    continue
-                try:
-                    msg = await channel.fetch_message(message_id)
-                except NotFound:
-                    delete_updatable_message(guild.id, channel_id, message_id)
-                    embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
-                                            channel_id}>. Вона не буде оновлюватись у майбутньому.")
-                    await interaction.channel.send(embed=embed)
-                    continue
-                if message["name"]:
-                    embed = generate_leaderboard(
-                        interaction, message["name"])
-                else:
-                    embed = generate_leaderboard(interaction)
-                await msg.edit(embed=embed)
+        if responce.code is not Code.SUCCESS:
+            embed = embed_generator(
+                "error", "Не вдалося редагувати оновлювані повідомлення.")
+            await interaction.response.send_message(embed=embed)
+            return
+        for message in responce.data:
+            message_id = message["message_id"]
+            channel_id = message["channel_id"]
+            channel = guild.get_channel(channel_id)
+            if channel is None:
+                delete_updatable_message(guild.id, channel_id, message_id)
+                embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
+                                        channel_id}>. Вона не буде оновлюватись у майбутньому.")
+                await interaction.channel.send(embed=embed)
+                continue
+            try:
+                msg = await channel.fetch_message(message_id)
+            except NotFound:
+                delete_updatable_message(guild.id, channel_id, message_id)
+                embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
+                                        channel_id}>. Вона не буде оновлюватись у майбутньому.")
+                await interaction.channel.send(embed=embed)
+                continue
+            if message["name"]:  # mode name
+                embed = generate_leaderboard(
+                    interaction, message["name"])
+            else:
+                embed = generate_leaderboard(interaction)
+            await msg.edit(embed=embed)
 
     @has_permissions(administrator=True)
     @command(description="Додає перемогу гравцю")
@@ -59,9 +63,15 @@ class Victories(Cog):
     @has_permissions(administrator=True)
     @command(description="Видаляє останню додану перемогу")
     async def remove_last_victory(self, interaction: Interaction):
-        responce_data = delete_last_victory(interaction.guild.id).data
-        embed = embed_generator(
-            "success", f"Видалено перемогу гравцю <@{responce_data['user_id']}> у режимі **{responce_data['name']}**.")
+        responce = delete_last_victory(interaction.guild.id)
+        if responce.code == Code.SUCCESS:
+            user_id = responce.data["user_id"]
+            mode_name = responce.data["name"]
+            embed = embed_generator(
+                "success", f"Видалено перемогу гравцю <@{user_id}> у режимі **{mode_name}**.")
+        else:
+            embed = embed_generator(
+                "error", "Не вдалося видалити перемогу.")
         await interaction.response.send_message(embed=embed)
 
         await self.update_message(interaction)

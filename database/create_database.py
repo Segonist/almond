@@ -1,10 +1,7 @@
 import sqlite3
-from dotenv import load_dotenv
-import os
+from config import config
 
-load_dotenv("../")
-
-ROOT_DIR = os.getenv("ROOT_DIR")
+ROOT_DIR = config["ROOT_DIR"]
 with open(f"{ROOT_DIR}/database/db_structure.sql") as sql_file:
     sql = sql_file.read()
 

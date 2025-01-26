@@ -1,9 +1,5 @@
-import os
-
 from discord import Intents, Object, Interaction, Color, Member, Guild, InteractionType, CustomActivity
 from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check
-
-from dotenv import load_dotenv
 
 import logging.handlers
 
@@ -11,10 +7,9 @@ from utils import embed_generator, victory_form
 
 from database import create_role, read_roles, read_data_for_roles
 
-load_dotenv()
+from config import config
 
-ALLOWED_GUILDS = [Object(id=guild)
-                  for guild in os.getenv("ALLOWED_GUILDS").split(",")]
+ALLOWED_GUILDS = [Object(id=guild) for guild in config["ALLOWED_GUILDS"]]
 
 
 intents = Intents.default()
@@ -136,16 +131,17 @@ class Almond(Bot):
     async def on_interaction(self, interaction: Interaction):
         if interaction.type is InteractionType.application_command:
             command = interaction.command
-            parameters = ", ".join([f"{command["name"]}: {
-                                   command["value"]}" for command in interaction.data["options"]])
-            self.logger.info(interaction.data["options"])
-            self.logger.info(
-                f"""Excucuted command {command.name} with parameters {parameters}
+            options = interaction.data.get("options", None)
+            if options:
+                parameters = ", ".join(
+                    [f"{command["name"]}: {command["value"]}" for command in options])
+                parameters = "with parameters " + parameters
+            self.logger.info(f"""Excucuted command {command.name} {parameters if options else ""}
 Guild {interaction.guild.name} #{interaction.guild.id}
 Channel {interaction.channel.name} #{interaction.channel.id}
 User {interaction.user} #{interaction.user.id}""")
 
 
-bot = Almond(command_prefix=os.getenv("PREFIX"), intents=intents)
+bot = Almond(command_prefix=config["PREFIX"], intents=intents)
 
-bot.run(os.getenv("TOKEN"))
+bot.run(config["TOKEN"])

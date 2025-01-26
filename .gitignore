@@ -3,4 +3,3 @@ __pycache__
 .env
 almond.db
 discord.log
-config.py

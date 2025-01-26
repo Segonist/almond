@@ -1,6 +1,6 @@
 import os
 
-from discord import Intents, Object, Interaction, Color, Member, Guild, InteractionType
+from discord import Intents, Object, Interaction, Color, Member, Guild, InteractionType, CustomActivity
 from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check
 
 from dotenv import load_dotenv
@@ -105,6 +105,10 @@ class Almond(Bot):
             pass
             # await self.create_roles(guild)
             # await self.make_roles_names(guild)
+
+        activity = CustomActivity(
+            name="\U0001F4DD Підраховує перемоги")
+        await self.change_presence(activity=activity)
 
     # global check that allows bot to work only on specified servers
     @check

@@ -84,8 +84,8 @@ def generate_leaderboard(interaction: Interaction, mode: str = None):
                 victories}** {victory_form(victories)}\n"
 
     if mode:
-        title = f"🏆 Таблиця лідерів режиму {mode} 🏆"
+        title = f"\U0001F3C6 Таблиця лідерів режиму {mode} \U0001F3C6"
     else:
-        title = "🏆 Загальна таблиця лідерів 🏆"
+        title = "\U0001F3C6 Загальна таблиця лідерів \U0001F3C6"
     embed = embed_generator("leaderboard", message, title, interaction)
     return embed

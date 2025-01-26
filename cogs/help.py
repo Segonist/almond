@@ -34,7 +34,7 @@ class Help(Cog):
     @rename(command="команда")
     @describe(command="(опціональний) Команда, по якій потрібна допомога")
     @choices(command=[
-        Choice(name="laderboard", value="laderboard"),
+        Choice(name="leaderboard", value="leaderboard"),
         Choice(name="victory", value="victory"),
         Choice(name="rename_game_mode", value="rename_game_mode"),
         Choice(name="remove_last_victory", value="remove_last_victory"),

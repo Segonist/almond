@@ -74,7 +74,7 @@ def generate_leaderboard(interaction: Interaction, mode: str = None):
         return embed
 
     message = ""
-    if not responce:
+    if not responce.data:
         message = "Дані відсутні."
     else:
         for i, player in enumerate(responce.data, 1):

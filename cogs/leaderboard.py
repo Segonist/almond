@@ -21,14 +21,14 @@ class Leaderboard(Cog):
     ])
     @autocomplete(mode=mode_autocomplete)
     async def leaderboard(self, interaction: Interaction, mode: str = None, updatable: Choice[int] = 0):
-        embed = generate_leaderboard(interaction, mode)
+        embed = await generate_leaderboard(interaction, mode)
         await interaction.response.send_message(embed=embed)
         message = await interaction.original_response()
         if updatable:
             guild_id = interaction.guild.id
             channel_id = interaction.channel.id
             message_id = message.id
-            responce = create_updatable_message(
+            responce = await create_updatable_message(
                 guild_id, channel_id, message_id, mode)
             if responce.code is not Code.SUCCESS:
                 embed = embed_generator(

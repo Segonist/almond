@@ -18,7 +18,7 @@ class Modes(Cog):
     @autocomplete(old_mode_name=mode_autocomplete)
     async def rename_game_mode(self, interaction: Interaction, old_mode_name: str, new_mode_name: str):
         guild = interaction.guild
-        responce = update_mode(guild.id, old_mode_name, new_mode_name)
+        responce = await update_mode(guild.id, old_mode_name, new_mode_name)
         if responce.code == Code.ALREADY_EXISTS:
             embed = embed_generator(
                 "error", f"Режим з назвою **{new_mode_name}** вже існує.")
@@ -31,7 +31,7 @@ class Modes(Cog):
         await interaction.response.send_message(embed=embed)
 
         new_mode_name = new_mode_name.lower()
-        responce = read_updatable_messages(guild.id)
+        responce = await read_updatable_messages(guild.id)
         if responce.code is not Code.SUCCESS:
             embed = embed_generator(
                 "error", "Не вдалося редагувати оновлювані повідомлення.")

@@ -132,11 +132,13 @@ class Almond(Bot):
     async def on_interaction(self, interaction: Interaction):
         if interaction.type is InteractionType.application_command:
             command = interaction.command
-            parameters = ", ".join([f"{command["name"]}: {
-                                   command["value"]}" for command in interaction.data["options"]])
-            self.logger.info(interaction.data["options"])
+            options = interaction.data.get("options", None)
+            parameters = "with no parameters"
+            if options:
+                parameters = "with parameters " + ", ".join(
+                    [f"{command["name"]}: {command["value"]}" for command in options])
             self.logger.info(
-                f"""Excucuted command {command.name} with parameters {parameters}
+                f"""Excucuted command {command.name} {parameters}
 Guild {interaction.guild.name} #{interaction.guild.id}
 Channel {interaction.channel.name} #{interaction.channel.id}
 User {interaction.user} #{interaction.user.id}""")

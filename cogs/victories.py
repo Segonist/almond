@@ -1,4 +1,4 @@
-from discord import Member, Interaction, NotFound
+from discord import Member, Interaction, NotFound, Forbidden
 from discord.app_commands import rename, describe, command, autocomplete
 from discord.ext.commands import Bot, Cog, has_permissions
 
@@ -13,7 +13,7 @@ class Victories(Cog):
 
     async def update_message(self, interaction: Interaction):
         guild = interaction.guild
-        responce = read_updatable_messages(guild.id)
+        responce = await read_updatable_messages(guild.id)
         if responce.code is not Code.SUCCESS:
             embed = embed_generator(
                 "error", "Не вдалося редагувати оновлювані повідомлення.")
@@ -24,7 +24,7 @@ class Victories(Cog):
             channel_id = message["channel_id"]
             channel = guild.get_channel(channel_id)
             if channel is None:
-                delete_updatable_message(guild.id, channel_id, message_id)
+                await delete_updatable_message(guild.id, channel_id, message_id)
                 embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
                                         channel_id}>. Вона не буде оновлюватись у майбутньому.")
                 await interaction.channel.send(embed=embed)
@@ -32,16 +32,21 @@ class Victories(Cog):
             try:
                 msg = await channel.fetch_message(message_id)
             except NotFound:
-                delete_updatable_message(guild.id, channel_id, message_id)
+                await delete_updatable_message(guild.id, channel_id, message_id)
                 embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
                                         channel_id}>. Вона не буде оновлюватись у майбутньому.")
                 await interaction.channel.send(embed=embed)
                 continue
+            except Forbidden:
+                embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
+                                        channel_id}>. Відсутній доступ до приватного каналу.")
+                await interaction.channel.send(embed=embed)
+                continue
             if message["name"]:  # mode name
-                embed = generate_leaderboard(
+                embed = await generate_leaderboard(
                     interaction, message["name"])
             else:
-                embed = generate_leaderboard(interaction)
+                embed = await generate_leaderboard(interaction)
             await msg.edit(embed=embed)
 
     @has_permissions(administrator=True)
@@ -50,20 +55,21 @@ class Victories(Cog):
     @describe(user="Гравець, якому треба додати перемогу", mode="Назва режиму гри")
     @autocomplete(mode=mode_autocomplete)
     async def victory(self, interaction: Interaction, user: Member, mode: str):
-        responce = create_victory(interaction.guild.id, user.id, mode)
+        responce = await create_victory(interaction.guild.id, user.id, mode)
         if responce.code == Code.SUCCESS:
             embed = embed_generator(
                 "success", f"Додано перемогу гравцю <@{user.id}> у режимі **{mode}**.")
+            await interaction.response.send_message(embed=embed)
             await self.update_message(interaction)
             # await self.bot.make_roles_names(interaction.guild)
         else:
             embed = embed_generator("error", "Щось пішло не так.")
-        await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed)
 
     @has_permissions(administrator=True)
     @command(description="Видаляє останню додану перемогу")
     async def remove_last_victory(self, interaction: Interaction):
-        responce = delete_last_victory(interaction.guild.id)
+        responce = await delete_last_victory(interaction.guild.id)
         if responce.code == Code.SUCCESS:
             user_id = responce.data["user_id"]
             mode_name = responce.data["name"]

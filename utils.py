@@ -16,12 +16,15 @@ async def mode_autocomplete(interaction: Interaction, current: str) -> list[Choi
     if guild_id in mode_cache and now - mode_cache[guild_id]['timestamp'] < 10:
         modes = mode_cache[guild_id]['data']
     else:
-        modes = read_modes(guild_id).data
+        responce = await read_modes(guild_id)
+        if responce is Code.DOES_NOT_EXIST:
+            return
+        modes = [mode["name"] for mode in responce.data]
         mode_cache[guild_id] = {'data': modes, 'timestamp': now}
 
     return [
-        Choice(name=mode["name"], value=mode["name"])
-        for mode in modes if current.lower() in mode["name"].lower()
+        Choice(name=mode, value=mode)
+        for mode in modes if current.lower() in mode.lower()
     ]
 
 
@@ -51,7 +54,7 @@ def embed_generator(type: str, description: str, title: str | None = None, inter
     return embed
 
 
-def victory_form(number):
+def victory_form(number: int) -> str:
     number = int(str(number)[-2:])
     if number >= 11 and number <= 19:
         return "перемог"
@@ -66,8 +69,8 @@ def victory_form(number):
         return "перемог"
 
 
-def generate_leaderboard(interaction: Interaction, mode: str = None):
-    responce = read_leaderboard(interaction.guild.id, mode)
+async def generate_leaderboard(interaction: Interaction, mode: str = None) -> Embed:
+    responce = await read_leaderboard(interaction.guild.id, mode)
     if responce.code == Code.DOES_NOT_EXIST:
         embed = embed_generator(
             "error", f"Режиму з назвою **{mode}** не існує.")

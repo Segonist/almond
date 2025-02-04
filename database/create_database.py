@@ -11,10 +11,10 @@ sql_file = f"{ROOT_DIR}/database/db_structure.sql"
 
 async def get_db_connection() -> Connection:
     return await connect(
-        user=os.getenv("USER"),
-        password=os.getenv("PASSWORD"),
-        host=os.getenv("HOST"),
-        db=os.getenv("DATABASE"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("DB_HOST"),
+        db=os.getenv("DB_NAME"),
         autocommit=True
     )
 

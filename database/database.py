@@ -298,3 +298,16 @@ async def read_data_for_roles(guild_id: int) -> Response:
     connection.close()
 
     return Response(Code.SUCCESS, result)
+
+
+async def delete_role(guild_id: int, role_id: int):
+    connection = await get_db_connection()
+    cursor: DictCursor = await connection.cursor()
+
+    query = "DELETE FROM role WHERE role_id = %s AND guild_id = %s;"
+    await cursor.execute(query, (role_id, guild_id))
+
+    await cursor.close()
+    connection.close()
+
+    return Response(Code.SUCCESS)

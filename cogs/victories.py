@@ -2,9 +2,15 @@ from discord import Member, Interaction, NotFound, Forbidden
 from discord.app_commands import rename, describe, command, autocomplete
 from discord.ext.commands import Bot, Cog, has_permissions
 
-from utils import mode_autocomplete, embed_generator, generate_leaderboard
+from utils import mode_autocomplete, embed_generator, EmbedType, generate_leaderboard
 
-from database import create_victory, delete_last_victory, read_updatable_messages, delete_updatable_message, Code
+from database import (
+    create_victory,
+    delete_last_victory,
+    read_updatable_messages,
+    delete_updatable_message,
+    Code,
+)
 
 
 class Victories(Cog):
@@ -16,7 +22,8 @@ class Victories(Cog):
         responce = await read_updatable_messages(guild.id)
         if responce.code is not Code.SUCCESS:
             embed = embed_generator(
-                "error", "Не вдалося редагувати оновлювані повідомлення.")
+                EmbedType.ERROR, "Не вдалося редагувати оновлювані повідомлення."
+            )
             await interaction.response.send_message(embed=embed)
             return
         for message in responce.data:
@@ -25,26 +32,37 @@ class Victories(Cog):
             channel = guild.get_channel(channel_id)
             if channel is None:
                 await delete_updatable_message(guild.id, channel_id, message_id)
-                embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
-                                        channel_id}>. Вона не буде оновлюватись у майбутньому.")
+                embed = embed_generator(
+                    EmbedType.WARNING,
+                    f"Не вдалось оновити таблицю лідерів у каналі <#{
+                        channel_id
+                    }>. Вона не буде оновлюватись у майбутньому.",
+                )
                 await interaction.channel.send(embed=embed)
                 continue
             try:
                 msg = await channel.fetch_message(message_id)
             except NotFound:
                 await delete_updatable_message(guild.id, channel_id, message_id)
-                embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
-                                        channel_id}>. Вона не буде оновлюватись у майбутньому.")
+                embed = embed_generator(
+                    EmbedType.WARNING,
+                    f"Не вдалось оновити таблицю лідерів у каналі <#{
+                        channel_id
+                    }>. Вона не буде оновлюватись у майбутньому.",
+                )
                 await interaction.channel.send(embed=embed)
                 continue
             except Forbidden:
-                embed = embed_generator("warning", f"Не вдалось оновити таблицю лідерів у каналі <#{
-                                        channel_id}>. Відсутній доступ до приватного каналу.")
+                embed = embed_generator(
+                    EmbedType.WARNING,
+                    f"Не вдалось оновити таблицю лідерів у каналі <#{
+                        channel_id
+                    }>. Відсутній доступ до приватного каналу.",
+                )
                 await interaction.channel.send(embed=embed)
                 continue
             if message["name"]:  # mode name
-                embed = await generate_leaderboard(
-                    interaction, message["name"])
+                embed = await generate_leaderboard(interaction, message["name"])
             else:
                 embed = await generate_leaderboard(interaction)
             await msg.edit(embed=embed)
@@ -58,12 +76,14 @@ class Victories(Cog):
         responce = await create_victory(interaction.guild.id, user.id, mode)
         if responce.code == Code.SUCCESS:
             embed = embed_generator(
-                "success", f"Додано перемогу гравцю <@{user.id}> у режимі **{mode}**.")
+                EmbedType.SUCCESS,
+                f"Додано перемогу гравцю <@{user.id}> у режимі **{mode}**.",
+            )
             await interaction.response.send_message(embed=embed)
             await self.update_message(interaction)
             # await self.bot.make_roles_names(interaction.guild)
         else:
-            embed = embed_generator("error", "Щось пішло не так.")
+            embed = embed_generator(EmbedType.ERROR, "Щось пішло не так.")
             await interaction.response.send_message(embed=embed)
 
     @has_permissions(administrator=True)
@@ -74,10 +94,13 @@ class Victories(Cog):
             user_id = responce.data["user_id"]
             mode_name = responce.data["name"]
             embed = embed_generator(
-                "success", f"Видалено перемогу гравцю <@{user_id}> у режимі **{mode_name}**.")
+                EmbedType.SUCCESS,
+                f"Видалено перемогу гравцю <@{
+                    user_id}> у режимі **{mode_name}**.",
+            )
         else:
             embed = embed_generator(
-                "error", "Не вдалося видалити перемогу.")
+                EmbedType.ERROR, "Не вдалося видалити перемогу.")
         await interaction.response.send_message(embed=embed)
 
         await self.update_message(interaction)

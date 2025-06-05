@@ -2,7 +2,7 @@ from discord import Interaction
 from discord.app_commands import rename, describe, command, autocomplete
 from discord.ext.commands import Bot, Cog, has_permissions
 
-from utils import mode_autocomplete, embed_generator
+from utils import mode_autocomplete, embed_generator, EmbedType
 
 from database import update_mode, read_updatable_messages, Code
 
@@ -14,27 +14,40 @@ class Modes(Cog):
     @has_permissions(administrator=True)
     @command(description="Змінює назву режиму гри")
     @rename(old_mode_name="з", new_mode_name="на")
-    @describe(old_mode_name="Режим, назву якого потрібно змінити", new_mode_name="Нова назва режиму")
+    @describe(
+        old_mode_name="Режим, назву якого потрібно змінити",
+        new_mode_name="Нова назва режиму",
+    )
     @autocomplete(old_mode_name=mode_autocomplete)
-    async def rename_game_mode(self, interaction: Interaction, old_mode_name: str, new_mode_name: str):
+    async def rename_game_mode(
+        self, interaction: Interaction, old_mode_name: str, new_mode_name: str
+    ):
         guild = interaction.guild
         responce = await update_mode(guild.id, old_mode_name, new_mode_name)
         if responce.code == Code.ALREADY_EXISTS:
             embed = embed_generator(
-                "error", f"Режим з назвою **{new_mode_name}** вже існує.")
+                EmbedType.ERROR, f"Режим з назвою **{
+                    new_mode_name}** вже існує."
+            )
         elif responce.code == Code.DOES_NOT_EXIST:
             embed = embed_generator(
-                "error", f"Режиму з назвою **{old_mode_name}** не існує.")
+                EmbedType.ERROR, f"Режиму з назвою **{
+                    old_mode_name}** не існує."
+            )
         elif responce.code == Code.SUCCESS:
             embed = embed_generator(
-                "success", f"Успішно змінено назву режиму **{old_mode_name}** на **{new_mode_name}**.")
+                EmbedType.SUCCESS,
+                f"Успішно змінено назву режиму **{
+                    old_mode_name}** на **{new_mode_name}**.",
+            )
         await interaction.response.send_message(embed=embed)
 
         new_mode_name = new_mode_name.lower()
         responce = await read_updatable_messages(guild.id)
         if responce.code is not Code.SUCCESS:
             embed = embed_generator(
-                "error", "Не вдалося редагувати оновлювані повідомлення.")
+                EmbedType.ERROR, "Не вдалося редагувати оновлювані повідомлення."
+            )
             await interaction.response.send_message(embed=embed)
             return
         for message in responce.data:
@@ -47,7 +60,8 @@ class Modes(Cog):
                 new_title = embed["title"].replace(
                     old_mode_name, new_mode_name)
                 new_embed = embed_generator(
-                    "leaderboard", embed["description"], new_title, interaction)
+                    EmbedType.LEADERBOARD, embed["description"], new_title, interaction
+                )
                 await msg.edit(embed=new_embed)
 
 

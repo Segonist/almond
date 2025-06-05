@@ -1,13 +1,29 @@
 import os
 
-from discord import Intents, Object, Interaction, Color, Member, Guild, InteractionType, CustomActivity
-from discord.ext.commands import Bot, Context, CheckFailure, CommandError, MissingPermissions, check
+from discord import (
+    Intents,
+    Object,
+    Interaction,
+    Color,
+    Member,
+    Guild,
+    InteractionType,
+    CustomActivity,
+)
+from discord.ext.commands import (
+    Bot,
+    Context,
+    CheckFailure,
+    CommandError,
+    MissingPermissions,
+    check,
+)
 
 from dotenv import load_dotenv
 
 import logging.handlers
 
-from utils import embed_generator, victory_form
+from utils import embed_generator, EmbedType, victory_form
 
 from database import create_role, read_roles, read_data_for_roles
 
@@ -32,7 +48,8 @@ handler = logging.handlers.RotatingFileHandler(
 )
 dt_fmt = "%Y-%m-%d %H:%M:%S"
 formatter = logging.Formatter(
-    "[{asctime}] [{levelname:<8}] {name}: {message}", dt_fmt, style="{")
+    "[{asctime}] [{levelname:<8}] {name}: {message}", dt_fmt, style="{"
+)
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -61,13 +78,12 @@ class Almond(Bot):
         if guild not in ALLOWED_GUILDS:
             return
         icons = {1: "🥇", 2: "🥈", 3: "🥉"}
-        colors = {1: Color.gold(), 2: Color.greyple(),
-                  3: Color.dark_orange()}
+        colors = {1: Color.gold(), 2: Color.greyple(), 3: Color.dark_orange()}
         result = read_data_for_roles(guild.id)
         leaderboard = result.data
         for i, user in enumerate(leaderboard, 1):
             role = guild.get_role(user["role_id"])
-            name = f"{user["victories"]} {victory_form(user["victories"])}"
+            name = f"{user['victories']} {victory_form(user['victories'])}"
             if guild.premium_tier >= 2:
                 icon = icons.get(i, "")
             else:
@@ -106,8 +122,7 @@ class Almond(Bot):
             # await self.create_roles(guild)
             # await self.make_roles_names(guild)
 
-        activity = CustomActivity(
-            name="\U0001F4DD Підраховує перемоги")
+        activity = CustomActivity(name="\U0001f4dd Підраховує перемоги")
         await self.change_presence(activity=activity)
 
     # global check that allows bot to work only on specified servers
@@ -121,16 +136,25 @@ class Almond(Bot):
     async def on_command_error(self, context: Context, error: CommandError):
         if isinstance(error, CheckFailure):
             self.logger.error(
-                error, f"\nBot command used on server that is not on the allowed list: {context.guild.name} ID: {context.guild.id}")
+                error,
+                f"\nBot command used on server that is not on the allowed list: {
+                    context.guild.name} ID: {context.guild.id}",
+            )
             embed = embed_generator(
-                "error", "Цей бот працює лише на визначеномих серверах. Якщо ви хочете використати його на своєму сервері, сконтактуйтесь з [@Segonist](https://discord.com/users/491260818139119626).")
+                EmbedType.ERROR,
+                "Цей бот працює лише на визначеномих серверах. Якщо ви хочете використати його на своєму сервері, сконтактуйтесь з [@Segonist](https://discord.com/users/491260818139119626).",
+            )
         elif isinstance(error, MissingPermissions):
             embed = embed_generator(
-                "error", "Цю команду може використовувати виключно адміністрація серверу.")
+                EmbedType.ERROR,
+                "Цю команду може використовувати виключно адміністрація серверу.",
+            )
         else:
             self.logger.error(
-                f"Guild {context.guild.name} #{context.guild.id}. Unhandled exeption: {error}")
-            embed = embed_generator("error", "Щось пішло не так.")
+                f"Guild {context.guild.name} #{
+                    context.guild.id}. Unhandled exeption: {error}"
+            )
+            embed = embed_generator(EmbedType.ERROR, "Щось пішло не так.")
         await context.send(embed=embed)
 
     async def on_interaction(self, interaction: Interaction):
@@ -140,12 +164,14 @@ class Almond(Bot):
             parameters = "with no parameters"
             if options:
                 parameters = "with parameters " + ", ".join(
-                    [f"{command["name"]}: {command["value"]}" for command in options])
+                    [f"{command['name']}: {command['value']}" for command in options]
+                )
             self.logger.info(
                 f"""Excucuted command {command.name} {parameters}
 Guild {interaction.guild.name} #{interaction.guild.id}
 Channel {interaction.channel.name} #{interaction.channel.id}
-User {interaction.user} #{interaction.user.id}""")
+User {interaction.user} #{interaction.user.id}"""
+            )
 
 
 bot = Almond(command_prefix=os.getenv("PREFIX"), intents=intents)

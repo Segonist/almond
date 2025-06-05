@@ -1,8 +1,8 @@
 from discord import Interaction
-from discord.app_commands import rename, describe, command, choices, Choice, autocomplete
+from discord.app_commands import rename, describe, command, choices, Choice
 from discord.ext.commands import Cog, Bot
 
-from utils import embed_generator
+from utils import embed_generator, EmbedType
 
 
 class Help(Cog):
@@ -33,12 +33,14 @@ class Help(Cog):
     @command(description="Допомога по боту")
     @rename(command="команда")
     @describe(command="(опціональний) Команда, по якій потрібна допомога")
-    @choices(command=[
-        Choice(name="leaderboard", value="leaderboard"),
-        Choice(name="victory", value="victory"),
-        Choice(name="rename_game_mode", value="rename_game_mode"),
-        Choice(name="remove_last_victory", value="remove_last_victory"),
-    ])
+    @choices(
+        command=[
+            Choice(name="leaderboard", value="leaderboard"),
+            Choice(name="victory", value="victory"),
+            Choice(name="rename_game_mode", value="rename_game_mode"),
+            Choice(name="remove_last_victory", value="remove_last_victory"),
+        ]
+    )
     async def help(self, interaction: Interaction, command: str = None):
         map = {
             "leaderboard": self.leaderboard,
@@ -50,7 +52,7 @@ class Help(Cog):
             message = map[command]
         else:
             message = "\n".join(map.values())
-        embed = embed_generator("help", message)
+        embed = embed_generator(EmbedType.HELP, message)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

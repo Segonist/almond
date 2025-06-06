@@ -43,7 +43,7 @@ class EmbedType(Enum):
 
 def embed_generator(
     type: EmbedType,
-    description: str,
+    description: str | None = None,
     title: str | None = None,
     interaction: Interaction | None = None,
 ) -> Embed:
@@ -112,8 +112,8 @@ async def generate_leaderboard(interaction: Interaction, mode: str = None) -> Em
             )
 
     if mode:
-        title = f"\U0001f3c6 Таблиця лідерів режиму {mode} \U0001f3c6"
+        title = f"Таблиця лідерів режиму {mode}"
     else:
-        title = "\U0001f3c6 Загальна таблиця лідерів \U0001f3c6"
+        title = "Загальна таблиця лідерів"
     embed = embed_generator(EmbedType.LEADERBOARD, message, title, interaction)
     return embed

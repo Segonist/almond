@@ -1,10 +1,10 @@
 from discord import Interaction
 from discord.app_commands import rename, describe, command, autocomplete
-from discord.ext.commands import Bot, Cog, has_permissions
+from discord.ext.commands import Cog, Bot, has_permissions
 
 from utils import mode_autocomplete, embed_generator, EmbedType
 
-from database import update_mode, read_updatable_messages, Code
+from database import update_mode, Code
 
 
 class Modes(Cog):
@@ -23,46 +23,27 @@ class Modes(Cog):
         self, interaction: Interaction, old_mode_name: str, new_mode_name: str
     ):
         guild = interaction.guild
-        responce = await update_mode(guild.id, old_mode_name, new_mode_name)
+        responce = await update_mode(
+            self.bot.async_session, guild.id, old_mode_name, new_mode_name
+        )
         if responce.code == Code.ALREADY_EXISTS:
             embed = embed_generator(
-                EmbedType.ERROR, f"Режим з назвою **{
-                    new_mode_name}** вже існує."
+                EmbedType.ERROR, f"Режим з назвою **{new_mode_name}** вже існує."
             )
         elif responce.code == Code.DOES_NOT_EXIST:
             embed = embed_generator(
-                EmbedType.ERROR, f"Режиму з назвою **{
-                    old_mode_name}** не існує."
+                EmbedType.ERROR, f"Режиму з назвою **{old_mode_name}** не існує."
             )
         elif responce.code == Code.SUCCESS:
             embed = embed_generator(
                 EmbedType.SUCCESS,
-                f"Успішно змінено назву режиму **{
-                    old_mode_name}** на **{new_mode_name}**.",
+                f"Успішно змінено назву режиму **{old_mode_name}** на **{new_mode_name}**.",
             )
         await interaction.response.send_message(embed=embed)
-
-        new_mode_name = new_mode_name.lower()
-        responce = await read_updatable_messages(guild.id)
-        if responce.code is not Code.SUCCESS:
-            embed = embed_generator(
-                EmbedType.ERROR, "Не вдалося редагувати оновлювані повідомлення."
-            )
-            await interaction.response.send_message(embed=embed)
-            return
-        for message in responce.data:
-            if message["name"] == new_mode_name:
-                message_id = message["message_id"]
-                channel_id = message["channel_id"]
-                channel = guild.get_channel(channel_id)
-                msg = await channel.fetch_message(message_id)
-                embed = msg.embeds[0].to_dict()
-                new_title = embed["title"].replace(
-                    old_mode_name, new_mode_name)
-                new_embed = embed_generator(
-                    EmbedType.LEADERBOARD, embed["description"], new_title, interaction
-                )
-                await msg.edit(embed=new_embed)
+        victories_cog = self.bot.get_cog("Victories")
+        if victories_cog:
+            # TODO: maybe make it so it won't be fetching all victories again and just change title
+            await victories_cog.update_messages(interaction)
 
 
 async def setup(bot: Bot):

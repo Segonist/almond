@@ -1,0 +1,12 @@
+[project]
+name = "almond"
+version = "0.1.0"
+description = "🏆 Discord bot for managing leader boards across different games."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiomysql>=0.2.0",
+    "discord-py>=2.6.3",
+    "python-dotenv>=1.1.1",
+    "sqlalchemy>=2.0.43",
+]

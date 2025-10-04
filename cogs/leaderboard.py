@@ -21,7 +21,7 @@ class Leaderboard(Cog):
     @command(description="Показує таблицю лідерів")
     @rename(mode="режим", updatable="оновлюване")
     @describe(
-        updatable="(опціональний) Визначає чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
+        updatable="(опціональний) Чи має повідомлення змінюватись під час додавання нових перемог (за замовчуванням ні)",
         mode="(опціональний) Режим гри з якого показати таблицю лідерів",
     )
     @choices(
@@ -36,13 +36,13 @@ class Leaderboard(Cog):
     ):
         embed = await generate_leaderboard(interaction, mode)
         await interaction.response.send_message(embed=embed)
-        message = await interaction.original_response()
         if updatable:
+            message = await interaction.original_response()
             guild_id = interaction.guild.id
             channel_id = interaction.channel.id
             message_id = message.id
             responce = await create_updatable_message(
-                guild_id, channel_id, message_id, mode
+                self.bot.async_session, guild_id, channel_id, message_id, mode
             )
             if responce.code is not Code.SUCCESS:
                 embed = embed_generator(

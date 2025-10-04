@@ -1,7 +1,11 @@
-from aiomysql import connect, Connection, DictCursor
 from enum import Enum
-from typing import Any
-import os
+from collections import namedtuple
+
+from sqlalchemy import select, update, delete, func, desc
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from .models import Mode, Victory, UpdatableMessage
 
 
 class Code(Enum):
@@ -11,290 +15,244 @@ class Code(Enum):
 
 
 class Response:
-    def __init__(self, code: Code, data: list[dict[str: Any]] | dict[str: Any] = None):
+    def __init__(
+        self,
+        code: Code,
+        data: list[Mode | Victory | UpdatableMessage]
+        | Mode
+        | Victory
+        | UpdatableMessage = None,
+    ):
         self.code = code
         self.data = data
 
-
-async def get_db_connection() -> Connection:
-    return await connect(
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        host=os.getenv("DB_HOST"),
-        db=os.getenv("DB_NAME"),
-        autocommit=True,
-        cursorclass=DictCursor
-    )
+    def __repr__(self) -> str:
+        return f"Response(code={self.code}, data={self.data})"
 
 
-async def create_mode(guild_id: int, name: str) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
+async def create_mode(
+    async_session: AsyncSession, guild_id: int, name: str
+) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
 
-    # my implementation of case-insentivity
-    name = name.lower()
+        # my implementation of case-insentivity
+        name = name.lower()
 
-    # check if there is such mode in database
-    responce = await read_mode_id(guild_id, name)
-    if responce.code is not Code.DOES_NOT_EXIST:
-        return Response(Code.ALREADY_EXISTS)
-
-    query = "INSERT INTO mode (name, guild_id) VALUES (%s, %s);"
-    await cursor.execute(query, (name, guild_id,))
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS, {"id": cursor.lastrowid})
-
-
-async def read_mode_id(guild_id: int, name: str) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    # my vision of case-insentivity
-    name = name.lower()
-
-    query = "SELECT id FROM mode WHERE name = %s AND guild_id = %s;"
-    await cursor.execute(query, (name, guild_id,))
-    result = await cursor.fetchone()
-    if not result:
-        return Response(Code.DOES_NOT_EXIST)
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS, result)
-
-
-async def read_modes(guild_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    query = "SELECT name FROM mode WHERE guild_id = %s;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchall()
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS, result)
-
-
-async def update_mode(guild_id: int, old_name: str, new_name: str) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    # check if there is no mode with name new_name
-    responce = await read_mode_id(guild_id, new_name)
-    if responce.code is not Code.DOES_NOT_EXIST:
-        return Response(Code.ALREADY_EXISTS)
-
-    # check if mode with name old_name exist
-    responce = await read_mode_id(guild_id, old_name)
-    if responce.code is not Code.SUCCESS:
-        return Response(Code.DOES_NOT_EXIST)
-
-    mode_id = responce.data["id"]
-    query = "UPDATE mode SET name = %s WHERE id = %s;"
-    await cursor.execute(query, (new_name, mode_id,))
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS)
-
-
-async def create_victory(guild_id: int, user_id: int, mode: str) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    # check if there is such mode in database, if not - create it
-    responce = await read_mode_id(guild_id, mode)
-    if responce.code is Code.DOES_NOT_EXIST:
-        responce = await create_mode(guild_id, mode)
-    mode_id = responce.data["id"]
-
-    query = "INSERT INTO victory (user_id, mode_id, guild_id) VALUES (%s, %s, %s);"
-    await cursor.execute(query, (user_id, mode_id, guild_id,))
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS)
-
-
-async def delete_last_victory(guild_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    # get last victory id
-    query = "SELECT MAX(id) as id FROM victory WHERE guild_id = %s;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchone()
-    last_id = result["id"]
-
-    query = f"SELECT victory.user_id, mode.name \
-            FROM victory \
-            JOIN mode \
-            ON victory.mode_id = mode.id \
-            WHERE victory.id = {last_id} \
-            AND victory.guild_id = %s;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchone()
-
-    query = f"DELETE FROM victory WHERE id = {last_id};"
-    await cursor.execute(query)
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS, result)
-
-
-async def read_leaderboard(guild_id: int, mode: str = None) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    if mode:
         # check if there is such mode in database
-        responce = await read_mode_id(guild_id, mode)
-        if responce.code is Code.DOES_NOT_EXIST:
+        responce = await read_mode(async_session, guild_id, name)
+        if responce.code is not Code.DOES_NOT_EXIST:
+            return Response(Code.ALREADY_EXISTS)
+
+        new_mode = Mode(name=name, guild_id=guild_id)
+        session.add(new_mode)
+        await session.commit()
+
+    return Response(Code.SUCCESS, new_mode)
+
+
+async def read_mode(async_session: AsyncSession, guild_id: int, name: str) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
+
+        # my vision of case-insentivity
+        name = name.lower()
+
+        statement = select(Mode).where(Mode.name == name, Mode.guild_id == guild_id)
+        responce = await session.execute(statement)
+        result = responce.scalar_one_or_none()
+        if not result:
             return Response(Code.DOES_NOT_EXIST)
 
-        query = f"SELECT user_id, COUNT(user_id) as victories \
-                FROM victory \
-                WHERE mode_id = {responce.data['id']} \
-                AND guild_id = %s \
-                GROUP BY user_id \
-                ORDER BY victories DESC;"
-    else:
-        query = "SELECT user_id, COUNT(user_id) as victories \
-                FROM victory \
-                WHERE guild_id = %s \
-                GROUP BY user_id \
-                ORDER BY victories DESC;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchall()
-
-    await cursor.close()
-    connection.close()
-
     return Response(Code.SUCCESS, result)
 
 
-async def create_updatable_message(guild_id: int, channel_id: int, message_id: int, mode: str = None) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
+async def read_modes(async_session: AsyncSession, guild_id: int) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
 
-    if mode:
-        # check if there is such mode in database
-        responce = await read_mode_id(guild_id, mode)
-        if responce.code is Code.DOES_NOT_EXIST:
+        statement = select(Mode).where(Mode.guild_id == guild_id)
+        responce = await session.scalars(statement)
+        result = responce.all()
+    return Response(Code.SUCCESS, result)
+
+
+async def update_mode(
+    async_session: AsyncSession, guild_id: int, old_name: str, new_name: str
+) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
+
+        # check if there is no mode with name new_name
+        responce: Response = await read_mode(async_session, guild_id, new_name)
+        if responce.code is not Code.DOES_NOT_EXIST:
+            return Response(Code.ALREADY_EXISTS)
+
+        # check if mode with name old_name exist
+        responce = await read_mode(async_session, guild_id, old_name)
+        if responce.code is not Code.SUCCESS:
             return Response(Code.DOES_NOT_EXIST)
 
-        mode_id = responce.data["id"]
-        query = "INSERT INTO updatable_message (channel_id, message_id, mode_id, guild_id) VALUES (%s, %s, %s, %s);"
-        await cursor.execute(query, (channel_id, message_id,
-                                     mode_id, guild_id))
-        return Response(Code.SUCCESS)
-
-    query = "INSERT INTO updatable_message (channel_id, message_id, guild_id) VALUES (%s, %s, %s);"
-    await cursor.execute(query, (channel_id, message_id, guild_id))
-
-    await cursor.close()
-    connection.close()
+        mode_id = responce.data.id
+        statement = update(Mode).where(Mode.id == mode_id).values(name=new_name)
+        await session.execute(statement)
+        await session.commit()
 
     return Response(Code.SUCCESS)
 
 
-async def read_updatable_messages(guild_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
+async def create_victory(
+    async_session: AsyncSession, guild_id: int, user_id: int, mode: str
+) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
 
-    query = "SELECT updatable_message.channel_id, updatable_message.message_id, mode.name \
-            FROM updatable_message \
-            LEFT JOIN mode ON updatable_message.mode_id = mode.id \
-            WHERE updatable_message.guild_id = %s;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchall()
+        # check if there is such mode in database, if not - create it
+        responce = await read_mode(async_session, guild_id, mode)
 
-    await cursor.close()
-    connection.close()
+        if responce.code is Code.DOES_NOT_EXIST:
+            responce = await create_mode(async_session, guild_id, mode)
 
-    return Response(Code.SUCCESS, result)
-
-
-async def delete_updatable_message(guild_id: int, channel_id: int, message_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    query = "DELETE FROM updatable_message WHERE channel_id = %s AND message_id = %s AND guild_id = %s;"
-    await cursor.execute(query, (channel_id, message_id, guild_id,))
-
-    await cursor.close()
-    connection.close()
+        new_victory = Victory(user_id=user_id, mode=responce.data, guild_id=guild_id)
+        session.add(new_victory)
+        await session.commit()
 
     return Response(Code.SUCCESS)
 
 
-async def create_role(guild_id: int, role_id: int, user_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
+async def delete_last_victory(async_session: AsyncSession, guild_id: int) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
 
-    query = "INSERT INTO role (role_id, user_id, guild_id) VALUES (%s, %s, %s);"
-    await cursor.execute(query, (role_id, user_id, guild_id))
+        # get last victory
+        statement = (
+            select(Victory)
+            .options(selectinload(Victory.mode))
+            .where(Victory.guild_id == guild_id)
+            .order_by(Victory.id.desc())
+            .limit(1)
+        )
+        responce = await session.execute(statement)
+        result = responce.scalar_one_or_none()
 
-    await cursor.close()
-    connection.close()
+        if not result:
+            return Response(Code.DOES_NOT_EXIST)
+
+        statement = delete(Victory).where(Victory.id == result.id)
+        await session.execute(statement)
+        await session.commit()
+
+    return Response(Code.SUCCESS, result)
+
+
+async def read_leaderboard(
+    async_session: AsyncSession, guild_id: int, mode: str = None
+) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
+
+        if mode:
+            # check if there is such mode in database
+            responce = await read_mode(async_session, guild_id, mode)
+            if responce.code is Code.DOES_NOT_EXIST:
+                return Response(Code.DOES_NOT_EXIST)
+
+            statement = (
+                select(Victory.user_id, func.count(Victory.user_id).label("victories"))
+                .where(Victory.mode_id == responce.data.id)
+                .where(Victory.guild_id == guild_id)
+                .group_by(Victory.user_id)
+                .order_by(desc("victories"))
+            )
+        else:
+            statement = (
+                select(Victory.user_id, func.count(Victory.user_id).label("victories"))
+                .where(Victory.guild_id == guild_id)
+                .group_by(Victory.user_id)
+                .order_by(desc("victories"))
+            )
+        responce = await session.execute(statement)
+        result = responce.fetchall()
+
+        # TODO: make this an object
+        LeaderboardRow = namedtuple("Leaderboard", ["user_id", "victories"])
+        result = [LeaderboardRow(*row) for row in result]
+
+    return Response(Code.SUCCESS, result)
+
+
+async def create_updatable_message(
+    async_session: AsyncSession,
+    guild_id: int,
+    channel_id: int,
+    message_id: int,
+    mode: str = None,
+) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
+
+        if mode:
+            # check if there is such mode in database
+            responce = await read_mode(async_session, guild_id, mode)
+            if responce.code is Code.DOES_NOT_EXIST:
+                return Response(Code.DOES_NOT_EXIST)
+
+            mode_id = responce.data.id
+            statement = UpdatableMessage(
+                channel_id=channel_id,
+                message_id=message_id,
+                mode_id=mode_id,
+                guild_id=guild_id,
+            )
+        else:
+            statement = UpdatableMessage(
+                channel_id=channel_id, message_id=message_id, guild_id=guild_id
+            )
+
+        session.add(statement)
+        await session.commit()
 
     return Response(Code.SUCCESS)
 
 
-async def read_role(guild_id: int, user_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
+async def read_updatable_messages(
+    async_session: AsyncSession, guild_id: int
+) -> Response:
+    session: AsyncSession
 
-    query = "SELECT role_id FROM role WHERE user_id = %s AND guild_id = %s;"
-    await cursor.execute(query, (user_id, guild_id,))
-    result = await cursor.fetchone()
-    if not result:
-        return Response(Code.DOES_NOT_EXIST)
-
-    await cursor.close()
-    connection.close()
-
+    async with async_session() as session:
+        statement = (
+            select(UpdatableMessage)
+            .options(selectinload(UpdatableMessage.mode))  # Eagerly load Mode
+            .where(UpdatableMessage.guild_id == guild_id)
+        )
+        responce = await session.scalars(statement)
+        result = responce.all()
     return Response(Code.SUCCESS, result)
 
 
-async def read_roles(guild_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
+async def delete_updatable_message(
+    async_session: AsyncSession, guild_id: int, channel_id: int, message_id: int
+) -> Response:
+    async with async_session() as session:
+        session: AsyncSession
 
-    query = "SELECT role_id, user_id FROM role WHERE guild_id = %s;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchall()
+        statement = select(UpdatableMessage).where(
+            UpdatableMessage.channel_id == channel_id,
+            UpdatableMessage.message_id == message_id,
+            UpdatableMessage.guild_id == guild_id,
+        )
+        responce = await session.execute(statement)
+        result = responce.scalar_one_or_none()
+        if not result:
+            return Response(Code.DOES_NOT_EXIST)
 
-    await cursor.close()
-    connection.close()
+        statement = delete(UpdatableMessage).where(
+            UpdatableMessage.channel_id == channel_id,
+            UpdatableMessage.message_id == message_id,
+            UpdatableMessage.guild_id == guild_id,
+        )
+        await session.execute(statement)
+        await session.commit()
 
-    return Response(Code.SUCCESS, result)
-
-
-async def read_data_for_roles(guild_id: int) -> Response:
-    connection = await get_db_connection()
-    cursor: DictCursor = await connection.cursor()
-
-    query = "SELECT victory.user_id, COUNT(victory.user_id) as victories, role.role_id \
-            FROM victory \
-            JOIN role ON victory.user_id = role.user_id \
-            WHERE victory.guild_id = %s \
-            GROUP BY victory.user_id \
-            ORDER BY victories DESC;"
-    await cursor.execute(query, (guild_id,))
-    result = await cursor.fetchall()
-
-    await cursor.close()
-    connection.close()
-
-    return Response(Code.SUCCESS, result)
+    return Response(Code.SUCCESS)

@@ -6,12 +6,17 @@ from enum import Enum
 
 from database import read_modes, read_leaderboard, Code
 
+# TODO: split this to excisting files
+
+
+# TODO: make it class or smth
 mode_cache = {}
 
 
 async def mode_autocomplete(
     interaction: Interaction, current: str
 ) -> list[Choice[int]]:
+    async_session = interaction.client.async_session
     guild_id = interaction.guild.id
     now = time()
 
@@ -19,10 +24,10 @@ async def mode_autocomplete(
     if guild_id in mode_cache and now - mode_cache[guild_id]["timestamp"] < 10:
         modes = mode_cache[guild_id]["data"]
     else:
-        responce = await read_modes(guild_id)
+        responce = await read_modes(async_session, guild_id)
         if responce is Code.DOES_NOT_EXIST:
             return
-        modes = [mode["name"] for mode in responce.data]
+        modes = [mode.name for mode in responce.data]
         mode_cache[guild_id] = {"data": modes, "timestamp": now}
 
     return [
@@ -60,7 +65,7 @@ def embed_generator(
             embed.title = ":warning: Увага"
         case EmbedType.SUCCESS:
             embed.color = Color.brand_green()
-            embed.title = ":success: Успіх"
+            embed.title = ":white_check_mark: Успіх"
         case EmbedType.RANDOM:
             embed.color = Color.purple()
             embed.title = f":game_die: {title}"
@@ -92,7 +97,8 @@ def victory_form(number: int) -> str:
 
 
 async def generate_leaderboard(interaction: Interaction, mode: str = None) -> Embed:
-    responce = await read_leaderboard(interaction.guild.id, mode)
+    async_session = interaction.client.async_session
+    responce = await read_leaderboard(async_session, interaction.guild.id, mode)
     if responce.code == Code.DOES_NOT_EXIST:
         embed = embed_generator(
             EmbedType.ERROR, f"Режиму з назвою **{mode}** не існує."
@@ -104,11 +110,10 @@ async def generate_leaderboard(interaction: Interaction, mode: str = None) -> Em
         message = "Дані відсутні."
     else:
         for i, player in enumerate(responce.data, 1):
-            user_id = player["user_id"]
-            victories = player["victories"]
+            user_id = player.user_id
+            victories = player.victories
             message += (
-                f"{i}. <@{user_id}> - **{victories}** {
-                    victory_form(victories)}\n"
+                f"{i}. <@{user_id}> - **{victories}** {victory_form(victories)}\n"
             )
 
     if mode:

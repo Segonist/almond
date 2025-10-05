@@ -29,6 +29,17 @@ class Help(Cog):
         self.remove_last_victory = """# remove_last_victory
 **Видаляє найпізнішу додану перемогу**
 """
+        self.vc_select_random_user = """# vc_select_random_user
+**Вибирає випадкову особу з голосового чату, в якому знаходиться людина що киликає команду**
+## Параметри
+- `автор` - Якщо так, людина що викликає команду буде включена в жеребкування (опціональний)
+"""
+        self.split_vc_into_teams = """# split_vc_into_teams
+**Поділяє осіб з голосового чату в якому знаходиться людина що викликає команду на (в міру можливості) рівні команди**
+## Параметри
+- `команди` - Кількість команд. *Команди будуть мати різну кількість осіб якщо кільуість осіб не можна поділити на кількість команд без залишку*
+- `автор` - Якщо так, людина що викликає команду буде включена в жеребкування (опціональний)
+"""
 
     @command(description="Допомога по боту")
     @rename(command="команда")
@@ -39,6 +50,8 @@ class Help(Cog):
             Choice(name="victory", value="victory"),
             Choice(name="rename_game_mode", value="rename_game_mode"),
             Choice(name="remove_last_victory", value="remove_last_victory"),
+            Choice(name="vc_select_random_user", value="vc_select_random_user"),
+            Choice(name="split_vc_into_teams", value="split_vc_into_teams"),
         ]
     )
     async def help(self, interaction: Interaction, command: str = None):
@@ -47,6 +60,8 @@ class Help(Cog):
             "victory": self.victory,
             "rename_game_mode": self.rename_game_mode,
             "remove_last_victory": self.remove_last_victory,
+            "vc_select_random_user": self.vc_select_random_user,
+            "split_vc_into_teams": self.split_vc_into_teams,
         }
         if command:
             message = map[command]
